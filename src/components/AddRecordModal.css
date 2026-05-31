@@ -1,0 +1,133 @@
+.arm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.arm-modal {
+  background: var(--card-bg);
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0));
+  animation: slideUp 0.25s ease;
+}
+
+.arm-title {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.arm-field {
+  margin-bottom: 20px;
+}
+
+.arm-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.arm-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.arm-input:focus {
+  border-color: var(--primary);
+}
+
+.arm-amount-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 16px;
+  transition: border-color 0.2s;
+}
+
+.arm-amount-wrap:focus-within {
+  border-color: var(--primary);
+}
+
+.arm-amount-prefix {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: 8px;
+}
+
+.arm-amount-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 14px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.arm-amount-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.arm-btns {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.arm-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.arm-btn:disabled {
+  opacity: 0.4;
+}
+
+.arm-btn-cancel {
+  background: #f3f4f6;
+  color: var(--text);
+}
+
+.arm-btn-save.income {
+  background: var(--success);
+  color: #fff;
+}
+
+.arm-btn-save.expense {
+  background: var(--danger);
+  color: #fff;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

@@ -1,0 +1,28 @@
+.tasks-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 40px 20px;
+}
+
+.tasks-placeholder {
+  text-align: center;
+}
+
+.tasks-placeholder-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.tasks-placeholder-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.tasks-placeholder-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
