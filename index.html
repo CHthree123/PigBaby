@@ -4,8 +4,156 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>PigBaby</title>
+    <link rel="icon" type="image/svg+xml" href="/pig.svg" />
+    <style>
+      /* Splash Screen */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, #FF9BB3, #FFB6C1, #FFD1DC, #FFE0E8);
+        background-size: 200% 200%;
+        animation: splashBgShift 4s ease infinite;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+      #splash.hide {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      @keyframes splashBgShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+
+      .splash-pig-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .splash-pig {
+        font-size: 80px;
+        opacity: 0;
+        transform: translateY(120px);
+        animation: splashBounce 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards;
+      }
+      .splash-spark {
+        position: absolute;
+        font-size: 22px;
+        opacity: 0;
+        animation: sparkPop 0.5s ease forwards;
+        pointer-events: none;
+      }
+      @keyframes sparkPop {
+        0% { opacity: 0; transform: scale(0) rotate(-30deg); }
+        70% { opacity: 1; transform: scale(1.4) rotate(5deg); }
+        100% { opacity: 1; transform: scale(1) rotate(0deg); }
+      }
+
+      .splash-title-row {
+        margin-top: 20px;
+        display: flex;
+        gap: 2px;
+      }
+      .splash-char {
+        font-size: 30px;
+        font-weight: 800;
+        color: #fff;
+        text-shadow: 0 3px 12px rgba(232, 112, 138, 0.35);
+        opacity: 0;
+        transform: translateY(20px);
+        animation: charUp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      @keyframes charUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+
+      .splash-subtitle {
+        margin-top: 8px;
+        font-size: 14px;
+        color: rgba(255,255,255,0.85);
+        opacity: 0;
+        animation: subFadeIn 0.5s ease 1.6s forwards;
+      }
+      @keyframes subFadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+
+      /* Dot loading after subtitle */
+      .splash-dots {
+        margin-top: 28px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        animation: subFadeIn 0.4s ease 1.7s forwards;
+      }
+      .splash-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.7);
+        animation: dotBounce 1.2s ease-in-out infinite;
+      }
+      .splash-dot:nth-child(2) { animation-delay: 0.15s; }
+      .splash-dot:nth-child(3) { animation-delay: 0.3s; }
+      @keyframes dotBounce {
+        0%, 60%, 100% { transform: translateY(0); }
+        30% { transform: translateY(-10px); }
+      }
+
+      @keyframes splashBounce {
+        0% { opacity: 0; transform: translateY(120px) scale(0.7); }
+        50% { opacity: 1; transform: translateY(-16px) scale(1.05); }
+        70% { transform: translateY(6px) scale(0.95); }
+        85% { transform: translateY(-4px) scale(1.02); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+    </style>
   </head>
   <body>
+    <!-- Splash Screen -->
+    <div id="splash">
+      <div class="splash-pig-wrap">
+        <span class="splash-pig">🐷</span>
+        <span class="splash-spark" style="top:-8px;right:-24px;animation-delay:0.8s">✨</span>
+        <span class="splash-spark" style="bottom:-4px;left:-20px;animation-delay:1.0s">💫</span>
+        <span class="splash-spark" style="top:4px;left:-32px;animation-delay:1.15s">🌟</span>
+      </div>
+      <div class="splash-title-row" id="splashTitleRow">
+        <span class="splash-char">P</span>
+        <span class="splash-char">i</span>
+        <span class="splash-char">g</span>
+        <span class="splash-char">B</span>
+        <span class="splash-char">a</span>
+        <span class="splash-char">b</span>
+        <span class="splash-char">y</span>
+      </div>
+      <div class="splash-subtitle">小猪记账本</div>
+      <div class="splash-dots">
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+      </div>
+    </div>
+
+    <script>
+      // Stagger letter animation delays
+      (function() {
+        var chars = document.querySelectorAll('.splash-char');
+        var baseDelay = 0.75;
+        chars.forEach(function(c, i) {
+          c.style.animationDelay = (baseDelay + i * 0.08) + 's';
+        });
+      })();
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

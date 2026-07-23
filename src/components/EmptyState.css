@@ -1,0 +1,79 @@
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px 50px;
+}
+
+.empty-dashed-box {
+  position: relative;
+  border: 2.5px dashed var(--primary);
+  border-radius: var(--radius);
+  padding: 40px 28px 32px;
+  text-align: center;
+  overflow: hidden;
+  max-width: 320px;
+  width: 100%;
+  background: rgba(255, 155, 179, 0.03);
+}
+
+/* Floating sparkles */
+.empty-sparkle {
+  position: absolute;
+  pointer-events: none;
+  animation: sparkleFloat linear infinite;
+  opacity: 0;
+}
+
+@keyframes sparkleFloat {
+  0% { transform: translateY(0) translateX(0) scale(0); opacity: 0; }
+  10% { opacity: 0.8; }
+  20% { transform: translateY(-15px) translateX(5px) scale(1.1); }
+  40% { transform: translateY(-30px) translateX(-5px) scale(0.9); }
+  60% { transform: translateY(-15px) translateX(-10px) scale(1); }
+  80% { transform: translateY(-5px) translateX(5px) scale(0.7); opacity: 0.3; }
+  100% { transform: translateY(0) translateX(0) scale(0); opacity: 0; }
+}
+
+/* Emoji art */
+.empty-art {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+.empty-main-emoji {
+  font-size: 56px;
+  display: block;
+  animation: pigShake 2.5s ease-in-out infinite;
+}
+
+.empty-side-emoji {
+  font-size: 36px;
+  position: absolute;
+  bottom: -4px;
+  right: -20px;
+  animation: pigShake 2.5s ease-in-out 0.3s infinite;
+}
+
+/* Title */
+.empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+/* Rotating tip */
+.empty-tip {
+  font-size: 13px;
+  color: var(--primary-dark);
+  font-weight: 600;
+  animation: tipFadeIn 0.4s ease;
+  min-height: 20px;
+}
+
+@keyframes tipFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

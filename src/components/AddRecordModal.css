@@ -1,7 +1,9 @@
 .arm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -11,28 +13,30 @@
 
 .arm-modal {
   background: var(--card-bg);
-  border-radius: 16px 16px 0 0;
+  border-radius: 24px 24px 0 0;
   width: 100%;
   max-width: 480px;
-  padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0));
-  animation: slideUp 0.25s ease;
+  padding: 12px 20px calc(20px + env(safe-area-inset-bottom, 0));
+  animation: slideUp 0.3s ease;
+  max-height: 85vh;
+  overflow-y: auto;
 }
 
 .arm-title {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .arm-field {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .arm-label {
   display: block;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 8px;
 }
@@ -68,7 +72,7 @@
 
 .arm-amount-prefix {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   margin-right: 8px;
 }
@@ -79,7 +83,7 @@
   background: transparent;
   padding: 14px 0;
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
 }
 
@@ -97,19 +101,24 @@
 .arm-btn {
   flex: 1;
   padding: 14px;
-  border-radius: var(--radius-sm);
+  border-radius: 30px;
   font-size: 16px;
-  font-weight: 600;
-  transition: opacity 0.15s;
+  font-weight: 700;
+  transition: all 0.15s;
+}
+
+.arm-btn:active {
+  transform: scale(0.95);
 }
 
 .arm-btn:disabled {
   opacity: 0.4;
+  transform: none;
 }
 
 .arm-btn-cancel {
-  background: #f3f4f6;
-  color: var(--text);
+  background: #f5f5f5;
+  color: var(--text-secondary);
 }
 
 .arm-btn-save.income {
@@ -118,16 +127,37 @@
 }
 
 .arm-btn-save.expense {
-  background: var(--danger);
+  background: var(--primary-dark);
   color: #fff;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.arm-btn-delete {
+  flex: 1;
+  padding: 14px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 700;
+  transition: all 0.15s;
+  background: #FFE0E5;
+  color: #E53935;
+  border: 1px solid #FFCDD2;
 }
 
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+.arm-btn-delete:active {
+  transform: scale(0.95);
+}
+
+.arm-btn-del-confirm {
+  flex: 1;
+  padding: 14px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 700;
+  transition: all 0.15s;
+  background: #E53935;
+  color: #fff;
+}
+
+.arm-btn-del-confirm:active {
+  transform: scale(0.95);
 }

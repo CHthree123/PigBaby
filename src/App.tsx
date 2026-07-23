@@ -1,3 +1,4 @@
+import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Accounting from './pages/Accounting';
 import Tasks from './pages/Tasks';
@@ -7,10 +8,30 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const tabs = [
-    { path: '/', label: '记账', icon: '💰' },
-    { path: '/tasks', label: '任务', icon: '📋' },
-  ];
+  useEffect(() => {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      const timer = setTimeout(() => {
+        splash.classList.add('hide');
+        setTimeout(() => splash.remove(), 500);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const [pigBounce, setPigBounce] = useState(false);
+
+  const handlePigClick = useCallback(() => {
+    if (pigBounce) return;
+    setPigBounce(true);
+    setTimeout(() => setPigBounce(false), 600);
+    // Navigate to accounting and trigger expense modal
+    if (location.pathname !== '/') {
+      navigate('/?open=expense');
+    } else {
+      navigate('/?open=expense', { replace: true });
+    }
+  }, [pigBounce, location.pathname, navigate]);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -26,16 +47,33 @@ function App() {
         </Routes>
       </main>
       <nav className="bottom-nav">
-        {tabs.map((tab) => (
+        {/* Left tab: 记账 */}
+        <button
+          className={`nav-item ${isActive('/') ? 'active' : ''}`}
+          onClick={() => navigate('/')}
+        >
+          <span className="nav-icon">💰</span>
+          <span className="nav-label">记账</span>
+        </button>
+
+        {/* Center protruding pig */}
+        <div className="nav-center-wrap">
           <button
-            key={tab.path}
-            className={`nav-item ${isActive(tab.path) ? 'active' : ''}`}
-            onClick={() => navigate(tab.path)}
+            className={`nav-pig-btn ${pigBounce ? 'bouncing' : ''}`}
+            onClick={handlePigClick}
           >
-            <span className="nav-icon">{tab.icon}</span>
-            <span className="nav-label">{tab.label}</span>
+            🐷
           </button>
-        ))}
+        </div>
+
+        {/* Right tab: 任务 */}
+        <button
+          className={`nav-item ${isActive('/tasks') ? 'active' : ''}`}
+          onClick={() => navigate('/tasks')}
+        >
+          <span className="nav-icon">📋</span>
+          <span className="nav-label">任务</span>
+        </button>
       </nav>
     </div>
   );

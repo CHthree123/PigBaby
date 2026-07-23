@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <radialGradient id="bodyGrad" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#FFD1DC"/>
+      <stop offset="100%" stop-color="#FFB6C1"/>
+    </radialGradient>
+    <radialGradient id="snoutGrad" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#FFCDD6"/>
+      <stop offset="100%" stop-color="#FF9BB3"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Left ear: large floppy -->
+  <ellipse cx="32" cy="34" rx="18" ry="20" fill="#E8708A" transform="rotate(-20,32,34)"/>
+  <ellipse cx="33" cy="35" rx="12" ry="14" fill="#FFD1DC" transform="rotate(-20,33,35)"/>
+
+  <!-- Right ear: large floppy -->
+  <ellipse cx="88" cy="34" rx="18" ry="20" fill="#E8708A" transform="rotate(20,88,34)"/>
+  <ellipse cx="87" cy="35" rx="12" ry="14" fill="#FFD1DC" transform="rotate(20,87,35)"/>
+
+  <!-- Body / head -->
+  <circle cx="60" cy="62" r="38" fill="url(#bodyGrad)"/>
+
+  <!-- Eyes: large cute oval -->
+  <ellipse cx="47" cy="54" rx="7" ry="9" fill="#4A3B3B"/>
+  <ellipse cx="73" cy="54" rx="7" ry="9" fill="#4A3B3B"/>
+
+  <!-- Eye catchlights: 3 each for sparkle effect -->
+  <circle cx="45" cy="51" r="2.8" fill="#FFF"/>
+  <circle cx="49" cy="49" r="1.2" fill="#FFF"/>
+  <circle cx="71" cy="51" r="2.8" fill="#FFF"/>
+  <circle cx="75" cy="49" r="1.2" fill="#FFF"/>
+
+  <!-- Snout -->
+  <ellipse cx="60" cy="74" rx="16" ry="11" fill="url(#snoutGrad)"/>
+
+  <!-- Nostrils -->
+  <ellipse cx="55" cy="73" rx="2.5" ry="3.5" fill="#D4687A"/>
+  <ellipse cx="65" cy="73" rx="2.5" ry="3.5" fill="#D4687A"/>
+
+  <!-- Mouth: cute W-shaped smile -->
+  <path d="M53 79 Q56 85 60 80 Q64 85 67 79" stroke="#D4687A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Big rosy blush -->
+  <ellipse cx="34" cy="65" rx="10" ry="6" fill="#FFB6C1" opacity="0.55"/>
+  <ellipse cx="86" cy="65" rx="10" ry="6" fill="#FFB6C1" opacity="0.55"/>
+
+  <!-- Tiny hooves at bottom (cute detail) -->
+  <ellipse cx="38" cy="98" rx="7" ry="5" fill="#E8708A"/>
+  <ellipse cx="82" cy="98" rx="7" ry="5" fill="#E8708A"/>
+
+  <!-- Curly tail on the right -->
+  <path d="M96 78 Q110 72 108 62 Q106 54 98 56 Q94 58 96 64" stroke="#E8708A" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

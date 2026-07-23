@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Left ear (large floppy) -->
+    <path
+        android:fillColor="#E8708A"
+        android:pathData="M20,18 Q16,5 36,20 L32,44 Q24,34 20,18 Z"/>
+    <!-- Left ear inner -->
+    <path
+        android:fillColor="#FFD1DC"
+        android:pathData="M22,20 Q20,12 32,24 L30,40 Q26,32 22,20 Z"/>
+
+    <!-- Right ear (large floppy) -->
+    <path
+        android:fillColor="#E8708A"
+        android:pathData="M88,18 Q92,5 72,20 L76,44 Q84,34 88,18 Z"/>
+    <!-- Right ear inner -->
+    <path
+        android:fillColor="#FFD1DC"
+        android:pathData="M86,20 Q88,12 76,24 L78,40 Q82,32 86,20 Z"/>
+
+    <!-- Body circle (round head) -->
+    <path
+        android:fillColor="#FFB6C1"
+        android:pathData="M54,28 A32,32 0 1,1 54,92 A32,32 0 1,1 54,28 Z"/>
+
+    <!-- Left eye (large oval) -->
+    <path
+        android:fillColor="#4A3B3B"
+        android:pathData="M44,46 A5,7 0 1,0 44,60 A5,7 0 1,0 44,46 Z"/>
+    <!-- Right eye -->
+    <path
+        android:fillColor="#4A3B3B"
+        android:pathData="M64,46 A5,7 0 1,0 64,60 A5,7 0 1,0 64,46 Z"/>
+
+    <!-- Eye catchlights -->
+    <path android:fillColor="#FFFFFF" android:pathData="M43,49 A2,2 0 1,0 43,53 A2,2 0 1,0 43,49 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M46,47 A1,1 0 1,0 46,49 A1,1 0 1,0 46,47 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M63,49 A2,2 0 1,0 63,53 A2,2 0 1,0 63,49 Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M66,47 A1,1 0 1,0 66,49 A1,1 0 1,0 66,47 Z"/>
+
+    <!-- Snout -->
+    <path
+        android:fillColor="#FF9BB3"
+        android:pathData="M46,62 A14,10 0 1,0 62,62 A14,10 0 1,0 46,62 Z"/>
+
+    <!-- Nostrils -->
+    <path android:fillColor="#D4687A" android:pathData="M52,63 A2,3 0 1,0 52,69 A2,3 0 1,0 52,63 Z"/>
+    <path android:fillColor="#D4687A" android:pathData="M56,63 A2,3 0 1,0 56,69 A2,3 0 1,0 56,63 Z"/>
+
+    <!-- Mouth (W-shaped smile) -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M50,71 Q52,76 54,72 Q56,76 58,71"
+        android:strokeWidth="1.5"
+        android:strokeColor="#D4687A"
+        android:strokeLineCap="round"/>
+
+    <!-- Blush -->
+    <path android:fillColor="#FFD1DC" android:fillAlpha="0.55" android:pathData="M36,58 A8,5 0 1,0 36,68 A8,5 0 1,0 36,58 Z"/>
+    <path android:fillColor="#FFD1DC" android:fillAlpha="0.55" android:pathData="M72,58 A8,5 0 1,0 72,68 A8,5 0 1,0 72,58 Z"/>
+
+    <!-- Tiny hooves -->
+    <path android:fillColor="#E8708A" android:pathData="M36,88 A6,4.5 0 1,0 36,97 A6,4.5 0 1,0 36,88 Z"/>
+    <path android:fillColor="#E8708A" android:pathData="M72,88 A6,4.5 0 1,0 72,97 A6,4.5 0 1,0 72,88 Z"/>
+</vector>
