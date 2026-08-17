@@ -31,5 +31,3 @@ android/local.properties
 android/captures/
 *.apk
 
-# Conversation exports
-*.txt

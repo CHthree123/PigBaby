@@ -1,0 +1,1614 @@
+╭─── Claude Code v2.1.150 ─────────────────────────────────────────────────────╮
+│                                         │ Tips for getting started           │
+│              Welcome back!              │ Run /init to create a CLAUDE.md f… │
+│                                         │ ────────────────────────────────── │
+│                 ▐▛███▜▌                 │ What's new                         │
+│                ▝▜█████▛▘                │ Auto mode is now available on Bed… │
+│                  ▘▘ ▝▝                  │ Plugins in `.claude/skills` direc… │
+│                                         │ Added `claude plugin init <name>`… │
+│   deepseek-v4-pro · API Usage Billing   │ /release-notes for more            │
+│        ~\Desktop\PigBaby\android        │                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+❯ C:\Users\jj193\Desktop\PigBaby\更新记录                                       
+
+  Listed 1 directory (ctrl+o to expand)
+
+● Let me read these files to understand the project context.
+
+  Read 3 files (ctrl+o to expand)
+
+❯ 浏览阅读 
+
+● 还在读取剩下的记录。
+
+  Read 3 files (ctrl+o to expand)
+
+● 继续读取最后一段记录（UI美化部分）。
+
+  Read 2 files (ctrl+o to expand)
+
+● 已读完所有 6 个更新记录文件。以下是 PigBaby 项目的完整历史总结：
+
+  ---
+  PigBaby 项目更新记录总览
+
+  第1段 (06-01 01:39) — 项目从零创建
+
+  - 用 Vite + React + TypeScript 脚手架初始化
+  - 安装 Capacitor（core/cli/preferences/android）+ react-router-dom
+  - 实现完整记账管理：月份切换、余额卡片、记收入/支出弹窗、记录列表、预算设置、
+  数据导出
+  - 任务管理显示占位页面
+  - 数据通过 Capacitor Preferences API 本地存储
+  - 卡在：缺少 Android Studio 无法打包 APK
+
+  第2段 (06-01 18:44) — 逐文件代码讲解
+
+  - 面向有 C/C++/Java/Python 背景的用户，详解全部 19 个源文件
+
+  第3段 (06-01 02:13) — 成功打包 APK
+
+  - 安装 Android Studio，配置 Gradle/Maven 国内镜像
+  - 命令行安装 Android SDK，成功打包 app-debug.apk（4.1MB）
+  - 微信屏蔽 APK，建议用 QQ 传输
+
+  第4段 (06-01 23:59) — 大型功能升级 + 美化
+
+  - 按日期查询记录、支出标签系统、标签统计页（CSS 条形图）
+  - 存钱罐功能（目标管理、存入扣款、进度条、达成庆祝）
+  - 完整任务管理（月日历视图、即时/长时任务、已完成/过期处理）
+  - 粉色主题全面应用
+  - 启动画面（小猪弹跳 + 爱心 + 文字淡入）
+  - 可拖动悬浮按钮（DraggableFab）
+  - SVG 小猪应用图标
+
+  第5段 (06-02 20:20) — 修复图标与按钮响应
+
+  - 重绘 SVG 小猪图标（更可爱的版本：大耳朵、闪光眼睛、W形微笑、腮红、卷尾巴）
+  - 同步更新 Android 应用图标（ic_launcher_foreground.xml）
+  - 修复 DraggableFab 按钮 300ms 延迟导致的响应慢问题
+
+  第6段 (06-02 20:59) — 底部导航美化
+
+  - 改为 3 个 tab：记账 | 🐷（中间凸起大按钮，点击弹跳纯装饰）| 任务
+  - 中间猪猪按钮带渐变背景、阴影、空闲微动 + 点击弹跳动画
+
+  ---
+  当前状态：功能完整、粉色主题、UI 美化已完成、APK 可正常打包。项目位置在
+  C:\Users\jj193\Desktop\PigBaby。
+
+  你想继续做什么？比如进一步美化、修改功能、重新打包 APK？
+
+✻ Brewed for 42s
+
+❯ 任务模块更新：默认打开隐藏已完成任务的功能，任务被创建出来后可以通过点击它来  
+  进行更改日期，任务等信息，同时日历中有特殊节假日的日期需要特殊标记，当我切到  
+  那天时，会在任务栏里显示当天是什么节日                                        
+
+  Searched for 1 pattern, read 6 files, listed 1 directory (ctrl+o to expand)
+
+● Now I have a clear picture of the codebase. Let me implement the three
+  features.
+● Feature 1: Default hide completed tasks.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line, removed 1 line
+      50      setSubTabRaw(v);
+      51    };
+      52  
+      53 -  const [hideCompleted, setHideCompleted] = useState(false);   
+      53 +  const [hideCompleted, setHideCompleted] = useState(true);    
+      54  
+      55    const [undo, setUndo] = useState<UndoState | null>(null);
+      56    const [undoVisible, setUndoVisible] = useState(false);
+
+● Feature 2: Add edit mode to AddTaskModal and click-to-edit on tasks.
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(~\Desktop\PigBaby\src\components\AddTaskModal.tsx)
+  ⎿  Added 22 lines, removed 11 lines
+       1 -import { useState, useRef } from 'react';                      
+       1 +import { useState, useRef, useEffect } from 'react';           
+       2  import type { Task } from '../storage';
+       3  
+       4  interface Props {
+       5    defaultDate: string;
+       6 +  editTask?: Task | null;                                      
+       7    onSave: (task: Task) => void;
+       8    onClose: () => void;
+       9  }
+      10  
+      10 -export default function AddTaskModal({ defaultDate, onSave, onC
+         -lose }: Props) {                                               
+      11 -  const [content, setContent] = useState('');                  
+      12 -  const [date, setDate] = useState(defaultDate);               
+      11 +export default function AddTaskModal({ defaultDate, editTask, o
+         +nSave, onClose }: Props) {                                     
+      12 +  const [content, setContent] = useState(editTask?.content ?? '
+         +');                                                            
+      13 +  const [date, setDate] = useState(editTask?.date ?? defaultDat
+         +e);                                                            
+      14    const openTime = useRef(Date.now());
+      15 +  const isEdit = !!editTask;                                   
+      16  
+      17 +  useEffect(() => {                                            
+      18 +    if (editTask) {                                            
+      19 +      setContent(editTask.content);                            
+      20 +      setDate(editTask.date);                                  
+      21 +    }                                                          
+      22 +  }, [editTask]);                                              
+      23 +                                                               
+      24    const handleOverlayClick = () => {
+      25      if (Date.now() - openTime.current > 400) {
+      26        onClose();
+     ...
+      30    const handleSave = () => {
+      31      if (!content.trim()) return;
+      32      const task: Task = {
+      24 -      id: Date.now().toString(),                               
+      33 +      id: editTask?.id ?? Date.now().toString(),               
+      34        content: content.trim(),
+      35        date,
+      27 -      completed: false,                                        
+      28 -      completedAt: null,                                       
+      29 -      createdAt: new Date().toISOString(),                     
+      30 -      order: 0,                                                
+      36 +      completed: editTask?.completed ?? false,                 
+      37 +      completedAt: editTask?.completedAt ?? null,              
+      38 +      createdAt: editTask?.createdAt ?? new Date().toISOString(
+         +),                                                             
+      39 +      order: editTask?.order ?? 0,                             
+      40      };
+      41      onSave(task);
+      42    };
+     ...
+      45      <div className="ac-modal-overlay" onClick={handleOverlayCli
+          ck}>
+      46        <div className="ac-modal" onClick={(e) => e.stopPropagati
+          on()}>
+      47          <div className="modal-handle" />
+      39 -        <h3>📝 新建任务</h3>                                   
+      48 +        <h3>{isEdit ? '✏️ 编辑任务' : '📝 新建任务'}</h3>      
+      49  
+      50          <div className="arm-field">
+      51            <label className="arm-label">任务内容</label>
+     ...
+      71  
+      72          <div className="ac-modal-btns">
+      73            <button className="ac-modal-btn cancel" onClick={onCl
+          ose}>取消</button>
+      65 -          <button className="ac-modal-btn confirm" onClick={han
+         -dleSave}>添加</button>                                         
+      74 +          <button className="ac-modal-btn confirm" onClick={han
+         +dleSave}>                                                      
+      75 +            {isEdit ? '保存' : '添加'}                         
+      76 +          </button>                                            
+      77          </div>
+      78        </div>
+      79      </div>
+
+● Now update Tasks.tsx to add edit task functionality and click-to-edit.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Error editing file
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line
+      51    };
+      52  
+      53    const [hideCompleted, setHideCompleted] = useState(true);
+      54 +  const [editingTask, setEditingTask] = useState<Task | null>(n
+         +ull);                                                          
+      55  
+      56    const [undo, setUndo] = useState<UndoState | null>(null);
+      57    const [undoVisible, setUndoVisible] = useState(false);
+
+● Now add the handleEditTask and handleSaveEdit handlers, and the click handlers
+   on task items.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 9 lines
+      153      await refresh();
+      154    };
+      155  
+      156 +  const handleSaveEdit = async (updatedTask: Task) => {       
+      157 +    const updated = tasks.map((t) =>                          
+      158 +      t.id === updatedTask.id ? updatedTask : t               
+      159 +    );                                                        
+      160 +    await saveTasks({ tasks: updated });                      
+      161 +    setTasks(updated);                                        
+      162 +    setEditingTask(null);                                     
+      163 +  };                                                          
+      164 +                                                              
+      165    const handleToggleComplete = async (taskId: string) => {
+      166      const task = tasks.find((t) => t.id === taskId);
+      167      if (!task) return;
+
+● Now add the click handler on task content and the edit modal. Let me update
+  the incomplete task items.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line, removed 1 line
+      356                        className="task-checkbox"
+      357                        onClick={() => handleToggleComplete(task
+           .id)}
+      358                      />
+      359 -                    <div className="task-content">{task.conten
+          -t}</div>                                                      
+      359 +                    <div className="task-content" onClick={() 
+          +=> setEditingTask(task)}>{task.content}</div>                 
+      360                    </div>
+      361                  ))}
+      362                </div>
+
+● Now update completed task items too.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line, removed 1 line
+      374                          className="task-checkbox checked"
+      375                          onClick={() => handleToggleComplete(ta
+           sk.id)}
+      376                        >✓</div>
+      377 -                      <div className="task-content done">{task
+          -.content}</div>                                               
+      377 +                      <div className="task-content done" onCli
+          +ck={() => setEditingTask(task)}>{task.content}</div>          
+      378                        <span className="task-completed-time">{f
+           ormatCompletedTime(task.completedAt)}</span>
+      379                      </div>
+      380                    ))}
+● Now update the "other dates" section task items too.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line, removed 1 line
+      425                            >
+      426                              {task.completed ? '✓' : ''}
+      427                            </div>
+      428 -                          <div className={`task-content ${task
+          -.completed ? 'done' : ''}`}>{task.content}</div>              
+      428 +                          <div className={`task-content ${task
+          +.completed ? 'done' : ''}`} onClick={() => setEditingTask(task
+          +)}>{task.content}</div>                                       
+      429                          </div>
+      430                        ))}
+      431                      </div>
+
+● Now add the edit modal rendering.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 9 lines
+      447          />
+      448        )}
+      449  
+      450 +      {editingTask && (                                       
+      451 +        <AddTaskModal                                         
+      452 +          defaultDate={selectedDate}                          
+      453 +          editTask={editingTask}                              
+      454 +          onSave={handleSaveEdit}                             
+      455 +          onClose={() => setEditingTask(null)}                
+      456 +        />                                                    
+      457 +      )}                                                      
+      458 +                                                              
+      459        {/* Undo Toast */}
+      460        {undoVisible && (
+      461          <div className={`undo-toast ${undoVisible ? 'show' : '
+           '}`}>
+
+● Let me check where task styles are defined and add the cursor pointer for
+  clickable task content.
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Accounting.css)
+  ⎿  Added 1 line
+      959    min-width: 0;
+      960    font-size: 15px;
+      961    font-weight: 500;
+      962 +  cursor: pointer;                                            
+      963  }
+      964  
+      965  .task-content.done {
+
+● Now for Feature 3: Chinese holiday markers.
+
+● Write(~\Desktop\PigBaby\src\holidays.ts)
+  ⎿  Wrote 95 lines to ..\src\holidays.ts
+       1 export interface Holiday {
+       2   date: string;       // YYYY-MM-DD
+       3   name: string;
+       4   emoji: string;
+       5   type: 'gregorian' | 'lunar';
+       6 }
+       7 
+       8 export interface HolidayMap {
+       9   [date: string]: Holiday;
+      10 }
+     … +133 lines (ctrl+o to expand)
+
+● Now update Tasks.tsx to integrate holidays.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line
+       7  import Tips from '../components/Tips';
+       8  import Projects from '../components/Project';
+       9  import EmptyState from '../components/EmptyState';
+      10 +import { getHoliday, getHolidayDates } from '../holidays';     
+      11  
+      12  function todayStr(): string {
+      13    const d = new Date();
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 3 lines
+      80      return set;
+      81    }, [tasks]);
+      82  
+      83 +  const holidayDates = useMemo(() => getHolidayDates(), []);   
+      84 +  const selectedHoliday = useMemo(() => getHoliday(selectedDate
+         +), [selectedDate]);                                            
+      85 +                                                               
+      86    // Calendar data
+      87    const firstDay = getFirstDayOfWeek(calYear, calMonth);
+      88    const totalDays = daysInMonth(calYear, calMonth);
+
+● Now update the calendar day rendering to show holiday markers.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 11 lines, removed 4 lines
+      287            {WEEKDAYS.map((w) => <div key={w}>{w}</div>)}
+      288          </div>
+      289          <div className="mini-cal-grid">
+      290 -          {calendarDays.map(({ day, month, dateStr }) => (    
+      290 +          {calendarDays.map(({ day, month, dateStr }) => {    
+      291 +            const isHoliday = holidayDates.has(dateStr);      
+      292 +            const holiday = getHoliday(dateStr);              
+      293 +            return (                                          
+      294              <div
+      295                key={dateStr}
+      293 -              className={`mini-cal-day ${month !== 'current' ?
+          - 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr =
+          -== selectedDate ? 'selected' : ''}`}                          
+      296 +              className={`mini-cal-day ${month !== 'current' ?
+          + 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr =
+          +== selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : '
+          +'}`}                                                          
+      297                onClick={() => {
+      298                  if (month === 'current') {
+      299                    setSelectedDate(dateStr);
+     ...
+      302                }}
+      303              >
+      304                {day}
+      302 -              {taskDates.has(dateStr) && <span className="mini
+          --cal-dot" />}                                                 
+      305 +              {isHoliday ? (                                  
+      306 +                <span className="mini-cal-holiday" title={holi
+          +day?.name}>{holiday?.emoji}</span>                            
+      307 +              ) : taskDates.has(dateStr) ? (                  
+      308 +                <span className="mini-cal-dot" />             
+      309 +              ) : null}                                       
+      310              </div>
+      304 -          ))}                                                 
+      311 +          )})}                                                
+      312          </div>
+      313        </div>
+      314  
+
+● Now update the task list header to show holiday name when selected date is a
+  holiday.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)  ⎿  Added 5 lines
+      317          <div style={{ display: 'flex', alignItems: 'center', j
+           ustifyContent: 'space-between', marginBottom: 10 }}>
+      318            <h3 style={{ fontSize: 15, fontWeight: 700, margin: 
+           0 }}>
+      319              📅 {selectedDate === today ? '今天' : selectedDate
+           } 的任务
+      320 +            {selectedHoliday && (                             
+      321 +              <span style={{ marginLeft: 8, fontSize: 13, font
+          +Weight: 500, color: '#E8708A' }}>                             
+      322 +                {selectedHoliday.emoji} {selectedHoliday.name}
+      323 +              </span>                                         
+      324 +            )}                                                
+      325            </h3>
+      326            <label style={{ display: 'flex', alignItems: 'center
+           ', gap: 6, cursor: 'pointer', userSelect: 'none', WebkitUserSe
+           lect: 'none', fontSize: 12, color: 'var(--text-muted)' }}>
+      327              <span>隐藏已完成</span>
+
+● Now add CSS for the holiday markers on the calendar.
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Accounting.css)
+  ⎿  Added 11 lines
+      898    bottom: 3px;
+      899  }
+      900  
+      901 +.mini-cal-day.holiday {                                       
+      902 +  background: #FFF8E7;                                        
+      903 +}                                                             
+      904 +                                                              
+      905 +.mini-cal-holiday {                                           
+      906 +  font-size: 10px;                                            
+      907 +  position: absolute;                                         
+      908 +  bottom: 1px;                                                
+      909 +  line-height: 1;                                             
+      910 +}                                                             
+      911 +                                                              
+      912  /* Task List */
+      913  .task-section-title {
+      914    font-size: 13px;
+
+● Let me verify the final state of Tasks.tsx.
+
+  Read 1 file (ctrl+o to expand)
+
+● Let me verify the code compiles.
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npx tsc --noEmit 2>&1)
+  ⎿  (No output)
+
+● TypeScript compiles cleanly with no errors. Let me mark the final task done.
+
+● 三项功能已全部实现并编译通过。以下是修改摘要：
+
+  修改的文件
+
+  1. src/pages/Tasks.tsx — 主要改动：
+    - hideCompleted 默认值改为 true，打开任务模块时已完成任务默认隐藏
+    - 新增 editingTask 状态和 handleSaveEdit 处理函数
+    - 任务内容文字添加 onClick={() => 
+  setEditingTask(task)}，点击即可弹出编辑窗口（可修改内容和日期）
+    - 导入节假日数据，日历上节假日日期显示对应 emoji（如 🧧 除夕、🐉 端午、🌕
+  中秋等），替代原来的小圆点
+    - 选中节假日时，任务栏标题旁显示节日名称（如 "🌕 中秋节"）
+  2. src/components/AddTaskModal.tsx — 新增编辑模式：
+    - 接受可选的 editTask prop，传入时即为编辑模式
+    - 编辑模式下标题显示"✏️ 编辑任务"，按钮显示"保存"
+    - 预填原任务的内容和日期，保存时保留原 ID 和顺序
+  3. src/pages/Accounting.css — 样式：
+    - .task-content 添加 cursor: pointer 提示可点击
+    - .mini-cal-day.holiday 淡黄背景标记节假日
+    - .mini-cal-holiday emoji 标记样式
+  4. src/holidays.ts — 新建文件，包含 2025-2027 年的公历节日（元旦、劳动节、国庆
+  节等）和农历节日（春节、元宵、端午、七夕、中秋、重阳、除夕）。
+
+✻ Brewed for 4m 3s
+
+❯ 继续更新任务模块：在任务显示列表里，过去未完成的任务自动顺延到今天，未来的任  
+  务自动收起为一个小的导航栏，点击再显示                                        
+
+● Let me re-read the current Tasks.tsx to plan the precise changes.
+
+  Read 1 file (ctrl+o to expand)
+
+● Now I'll implement both features. First, let me add the new computed values
+  for past roll-forward and future tasks.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 16 lines
+      74    const incompleteTasks = useMemo(() => dateTasks.filter((t) =>
+           !t.completed), [dateTasks]);
+      75    const completedTasks = useMemo(() => dateTasks.filter((t) => 
+          t.completed), [dateTasks]);
+      76  
+      77 +  const pastIncompleteTasks = useMemo(() => {                  
+      78 +    return tasks.filter((t) => !t.completed && t.date < today).
+         +sort((a, b) => a.date.localeCompare(b.date));                  
+      79 +  }, [tasks, today]);                                          
+      80 +                                                               
+      81 +  const futureTaskDates = useMemo(() => {                      
+      82 +    return [...new Set(tasks.filter((t) => t.date > today).map(
+         +(t) => t.date))].sort();                                       
+      83 +  }, [tasks, today]);                                          
+      84 +                                                               
+      85 +  const futureTasksByDate = useMemo(() => {                    
+      86 +    const map: Record<string, Task[]> = {};                    
+      87 +    for (const d of futureTaskDates) {                         
+      88 +      map[d] = tasks.filter((t) => t.date === d).sort((a, b) =>
+         + a.order - b.order);                                           
+      89 +    }                                                          
+      90 +    return map;                                                
+      91 +  }, [tasks, futureTaskDates]);                                
+      92 +                                                               
+      93    const taskDates = useMemo(() => {
+      94      const set = new Set<string>();
+      95      for (const t of tasks) set.add(t.date);
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)  ⎿  Added 1 line
+      53  
+      54    const [hideCompleted, setHideCompleted] = useState(true);
+      55    const [editingTask, setEditingTask] = useState<Task | null>(n
+          ull);
+      56 +  const [futureExpanded, setFutureExpanded] = useState(false); 
+      57  
+      58    const [undo, setUndo] = useState<UndoState | null>(null);
+      59    const [undoVisible, setUndoVisible] = useState(false);
+
+● Now let me modify the task display section to add past task roll-forward and
+  future task nav. First, update the incomplete tasks section with past
+  roll-forward.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 24 lines, removed 2 lines
+      372            </label>
+      373          </div>
+      374  
+      375 -        {incompleteTasks.length === 0 && completedTasks.length
+          - === 0 ? (                                                    
+      375 +        {incompleteTasks.length === 0 && completedTasks.length
+          + === 0 && !(selectedDate === today && pastIncompleteTasks.leng
+          +th > 0) ? (                                                   
+      376            <EmptyState emoji="📋" title="📋 这天没有任务~" />
+      377          ) : (
+      378            <>
+      379 -            {/* Incomplete */}                                
+      379 +            {/* Past incomplete rolled to today */}           
+      380 +            {selectedDate === today && pastIncompleteTasks.len
+          +gth > 0 && (                                                  
+      381 +              <div style={{ marginBottom: 10 }}>              
+      382 +                <div className="task-section-title" style={{ c
+          +olor: '#E8708A' }}>📌 过去未完成 · 已顺延</div>               
+      383 +                <div className="task-list">                   
+      384 +                  {pastIncompleteTasks.map((task) => (        
+      385 +                    <div key={task.id} className="task-item ro
+          +lled">                                                        
+      386 +                      <div style={{ width: 32, flexShrink: 0 }
+          +} />                                                          
+      387 +                      <div                                    
+      388 +                        className="task-checkbox"             
+      389 +                        onClick={() => handleToggleComplete(ta
+          +sk.id)}                                                       
+      390 +                      />                                      
+      391 +                      <div className="task-content" onClick={(
+          +) => setEditingTask(task)}>                                   
+      392 +                        {task.content}                        
+      393 +                        <span className="task-rolled-date">{ta
+          +sk.date.slice(5)}</span>                                      
+      394 +                      </div>                                  
+      395 +                    </div>                                    
+      396 +                  ))}                                         
+      397 +                </div>                                        
+      398 +              </div>                                          
+      399 +            )}                                                
+      400 +                                                              
+      401 +            {/* Incomplete for selected date */}              
+      402              {incompleteTasks.length > 0 && (
+      403                <div className="task-list">
+      404                  {incompleteTasks.map((task, idx) => (
+
+● Now replace the "other dates" section with the future tasks collapsed nav.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 33 lines, removed 39 lines
+      440          )}
+      441        </div>
+      442  
+      443 -      {/* Other dates */}                                     
+      444 -      {(() => {                                               
+      445 -        const otherDates = [...new Set(tasks.map((t) => t.date
+          -))]                                                           
+      446 -          .filter((d) => d !== selectedDate)                  
+      447 -          .sort((a, b) => b.localeCompare(a))                 
+      448 -          .slice(0, 10);                                      
+      443 +      {/* Future tasks collapsed nav */}                      
+      444 +      {futureTaskDates.length > 0 && (                        
+      445 +        <div style={{ marginTop: 10 }}>                       
+      446 +          <div className="future-nav" onClick={() => setFuture
+          +Expanded(!futureExpanded)}>                                   
+      447 +            <span>{futureExpanded ? '▼' : '▶'} 📅 未来任务</sp
+          +an>                                                           
+      448 +            <span className="future-nav-count">               
+      449 +              {futureTaskDates.reduce((sum, d) => sum + (futur
+          +eTasksByDate[d]?.length ?? 0), 0)}个                          
+      450 +            </span>                                           
+      451 +          </div>                                              
+      452 +          {futureExpanded && (                                
+      453 +            <div className="future-list">                     
+      454 +              {futureTaskDates.map((date) => {                
+      455 +                const dateTasks = futureTasksByDate[date] ?? [
+          +];                                                            
+      456 +                const incomplete = dateTasks.filter((t) => !t.
+          +completed);                                                   
+      457 +                const completed = dateTasks.filter((t) => t.co
+          +mpleted);                                                     
+      458 +                const holiday = getHoliday(date);             
+      459 +                const displayTasks = hideCompleted ? incomplet
+          +e : [...incomplete, ...completed];                            
+      460 +                if (displayTasks.length === 0) return null;   
+      461  
+      450 -        if (otherDates.length === 0) return null;             
+      451 -                                                              
+      452 -        return (                                              
+      453 -          <div style={{ marginTop: 4 }}>                      
+      454 -            <div className="task-section-title">📋 其他日期任 
+          -务</div>                                                      
+      455 -            {otherDates.map((date) => {                       
+      456 -              const dateTasksAll = tasks.filter((t) => t.date 
+          -=== date);                                                    
+      457 -              const incomplete = dateTasksAll.filter((t) => !t
+          -.completed);                                                  
+      458 -              const completed = dateTasksAll.filter((t) => t.c
+          -ompleted);                                                    
+      459 -                                                              
+      460 -              // When hiding completed, skip dates with no inc
+          -omplete tasks                                                 
+      461 -              if (hideCompleted && incomplete.length === 0) re
+          -turn null;                                                    
+      462 -                                                              
+      463 -              const count = incomplete.length;                
+      464 -              const isOpen = expandedDates.has(date);         
+      465 -                                                              
+      466 -              return (                                        
+      467 -                <div key={date}>                              
+      468 -                  <div className="task-collapsed-header" onCli
+          -ck={() => toggleDateExpand(date)}>                            
+      469 -                    <span>{isOpen ? '▼' : '▶'}</span>         
+      470 -                    <span>{date}</span>                       
+      471 -                    <span style={{ fontSize: 12 }}>{count}个未
+          -完成</span>                                                   
+      472 -                  </div>                                      
+      473 -                  {isOpen && (                                
+      474 -                    <div style={{ paddingLeft: 16 }}>         
+      475 -                      {(hideCompleted ? incomplete : [...incom
+          -plete, ...completed]).map((task) => (                         
+      462 +                return (                                      
+      463 +                  <div key={date}>                            
+      464 +                    <div className="future-date-header">      
+      465 +                      {date}                                  
+      466 +                      {holiday && <span style={{ marginLeft: 6
+          +, fontSize: 12, color: '#E8708A' }}>{holiday.emoji} {holiday.n
+          +ame}</span>}                                                  
+      467 +                    </div>                                    
+      468 +                    <div style={{ paddingLeft: 8 }}>          
+      469 +                      {displayTasks.map((task) => (           
+      470                          <div key={task.id} className={`task-it
+           em ${task.completed ? 'completed' : ''}`}>
+      471                            <div
+      472                              className={`task-checkbox ${task.c
+           ompleted ? 'checked' : ''}`}
+     ...
+      478                          </div>
+      479                        ))}
+      480                      </div>
+      487 -                  )}                                          
+      488 -                </div>                                        
+      489 -              );                                              
+      490 -            })}                                               
+      491 -          </div>                                              
+      492 -        );                                                    
+      493 -      })()}                                                   
+      481 +                  </div>                                      
+      482 +                );                                            
+      483 +              })}                                             
+      484 +            </div>                                            
+      485 +          )}                                                  
+      486 +        </div>                                                
+      487 +      )}                                                      
+      488  
+      489        <DraggableFab onClick={() => setShowAddModal(true)} />
+      490  
+
+● Now add CSS styles for the new elements.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Accounting.css)
+  ⎿  Added 48 lines
+      1019    cursor: pointer;
+      1020  }
+      1021  
+      1022 +/* Rolled forward task date label */                         
+      1023 +.task-rolled-date {                                          
+      1024 +  display: inline-block;                                     
+      1025 +  margin-left: 8px;                                          
+      1026 +  font-size: 11px;                                           
+      1027 +  color: #E8708A;                                            
+      1028 +  background: #FFF0F4;                                       
+      1029 +  padding: 1px 7px;                                          
+      1030 +  border-radius: 8px;                                        
+      1031 +  font-weight: 400;                                          
+      1032 +}                                                            
+      1033 +                                                             
+      1034 +/* Future tasks nav */                                       
+      1035 +.future-nav {                                                
+      1036 +  display: flex;                                             
+      1037 +  align-items: center;                                       
+      1038 +  justify-content: space-between;                            
+      1039 +  padding: 10px 12px;                                        
+      1040 +  background: var(--card-bg);                                
+      1041 +  border: 1px solid var(--border);                           
+      1042 +  border-radius: var(--radius-sm);                           
+      1043 +  font-size: 14px;                                           
+      1044 +  font-weight: 600;                                          
+      1045 +  cursor: pointer;                                           
+      1046 +  transition: all 0.2s;                                      
+      1047 +}                                                            
+      1048 +                                                             
+      1049 +.future-nav:hover {                                          
+      1050 +  background: var(--primary-light);                          
+      1051 +}                                                            
+      1052 +                                                             
+      1053 +.future-nav-count {                                          
+      1054 +  font-size: 12px;                                           
+      1055 +  color: var(--text-muted);                                  
+      1056 +  font-weight: 400;                                          
+      1057 +}                                                            
+      1058 +                                                             
+      1059 +.future-list {                                               
+      1060 +  margin-top: 6px;                                           
+      1061 +}                                                            
+      1062 +                                                             
+      1063 +.future-date-header {                                        
+      1064 +  font-size: 13px;                                           
+      1065 +  font-weight: 700;                                          
+      1066 +  color: var(--text-secondary);                              
+      1067 +  padding: 6px 4px 4px;                                      
+      1068 +}                                                            
+      1069 +                                                             
+      1070  /* FAB */
+      1071  .fab {
+      1072    position: fixed;
+
+● Now clean up unused expandedDates and toggleDateExpand since the old "other
+  dates" section is gone.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Removed 1 line
+      40    const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+      41    const [selectedDate, setSelectedDate] = useState(today);
+      42    const [showAddModal, setShowAddModal] = useState(false);
+      43 -  const [expandedDates, setExpandedDates] = useState<Set<string
+         ->>(new Set([today]));                                          
+      43    const [subTab, setSubTabRaw] = useState<SubTab>('tasks');
+      44    const subTabKeyRef = useRef(0);
+      45    const [subTabKey, setSubTabKey] = useState(0);
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Removed 1 line
+      169      await saveTasks(updated);
+      170      setShowAddModal(false);
+      171      setSelectedDate(task.date);
+      172 -    setExpandedDates((prev) => new Set([...prev, task.date]));
+      172      await refresh();
+      173    };
+      174  
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line, removed 4 lines
+      310                key={dateStr}
+      311                className={`mini-cal-day ${month !== 'current' ?
+            'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr =
+           == selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : '
+           '}`}
+      312                onClick={() => {
+      313 -                if (month === 'current') {                    
+      314 -                  setSelectedDate(dateStr);                   
+      315 -                  setExpandedDates((prev) => new Set([...prev,
+          - dateStr]));                                                  
+      316 -                }                                             
+      313 +                if (month === 'current') setSelectedDate(dateS
+          +tr);                                                          
+      314                }}
+      315              >
+      316                {day}
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Removed 9 lines
+      222      setTasks(updatedTasks);
+      223    };
+      224  
+      225 -  const toggleDateExpand = (date: string) => {                
+      226 -    setExpandedDates((prev) => {                              
+      227 -      const next = new Set(prev);                             
+      228 -      if (next.has(date)) next.delete(date);                  
+      229 -      else next.add(date);                                    
+      230 -      return next;                                            
+      231 -    });                                                       
+      232 -  };                                                          
+      233 -                                                              
+      225    const formatCompletedTime = (iso: string | null) => {
+      226      if (!iso) return '';
+      227      const d = new Date(iso);
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npx tsc --noEmit 2>&1)
+  ⎿  (No output)
+
+● Clean compilation. Let me verify the final state of the file.
+
+  Read 1 file (ctrl+o to expand)
+● 两项功能已实现并编译通过。修改摘要：
+
+  1. 过去未完成任务自动顺延到今天
+
+  - 新增 pastIncompleteTasks 计算：筛选日期在 today
+  之前且未完成的任务，按日期升序排列
+  - 打开任务模块时（默认选中今天），过去未完成的任务会出现在任务列表顶部，带有
+  "📌 过去未完成 · 已顺延" 标签
+  - 每条顺延任务右侧显示粉红色日期标签（如 06-01），标明原始日期
+  - 勾选完成后，任务保留在原日期完成——不会修改日期，只是显示上顺延到今日
+  - 点击任务内容可编辑；顺延任务不显示上下箭头（因为是跨日期混排）
+
+  2. 未来任务自动收起为导航栏
+
+  - 新增 futureTaskDates 和 futureTasksByDate：按日期分组所有今天之后的任务
+  - 底部显示 "📅 未来任务 (N个)" 折叠导航栏，默认收起
+  - 点击展开后按日期分组显示，每个日期显示该日所有任务
+  - 支持在展开的未来任务中勾选完成、点击编辑
+  - 未来日期包含节假日标记（如中秋、国庆等）
+  - 移除了旧的"其他日期任务"通用展示（被更精准的"过去顺延 + 未来导航"替代）
+
+✻ Worked for 2m 50s
+
+❯ 打包成apk                                                                     
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npx cap sync android 2>&1 && cd
+      android && ./gradlew assembleDebug 2>&1)
+  ⎿  Error: Exit code 127
+     √ Copying web assets from dist to android\app\src\main\assets\public in 
+     108.73ms
+     √ Creating capacitor.config.json in android\app\src\main\assets in 48.81ms
+     √ copy android in 192.99ms
+     √ Updating Android plugins in 9.42ms
+     [info] Found 1 Capacitor plugin for android:
+            @capacitor/preferences@8.0.1
+     √ update android in 132.09ms
+     [info] Sync finished in 0.38s
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby\android" && ls gradlew* 2>&1)
+  ⎿  gradlew
+     gradlew.bat
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby\android" && ./gradlew.bat
+      assembleDebug 2>&1)
+  ⎿  Error: Exit code 1
+      
+     ERROR: JAVA_HOME is set to an invalid directory: C:\java 
+      
+     Please set the JAVA_HOME variable in your environment to match the 
+     location of your Java installation.
+
+● Bash(ls "C:\Program Files\Android\Android Studio\jbr" 2>&1 || ls "C:\Android
+      Studio\jbr" 2>&1 || ls "C:\Program Files\Java" 2>&1 || ls "C:\Program
+      Files\Common Files…)
+  ⎿  ls: cannot access 'C:\Program Files\Android\Android Studio\jbr': No su
+     ch file or directory
+     bin
+     … +4 lines (ctrl+o to expand)
+
+● Bash(export JAVA_HOME="C:\Android Studio\jbr" && cd
+      "C:\Users\jj193\Desktop\PigBaby\android" && ./gradlew.bat assembleDebug
+      2>&1)
+  ⎿  Error: Exit code 1
+     Starting a Gradle Daemon, 1 incompatible and 1 stopped Daemons could not be
+      reused, use --status for details
+
+     > Configure project :app
+     WARNING: Using flatDir should be avoided because it doesn't support any 
+     meta-data formats.
+
+     > Configure project :capacitor-cordova-android-plugins
+     WARNING: Using flatDir should be avoided because it doesn't support any 
+     meta-data formats.
+     WARNING: The following problems were found when resolving the SDK location:
+     Where: sdk.dir property in local.properties file. Problem: Directory does 
+     not exist
+     … +23 lines (ctrl+o to expand)
+
+  Read 1 file, listed 2 directories (ctrl+o to expand)
+
+● Update(local.properties)
+  ⎿  Added 1 line, removed 1 line
+      1 -sdk.dir=/c/Users/jj193/Android/Sdk                              
+      1 +sdk.dir=C:\\Users\\jj193\\Android\\Sdk                          
+
+● Bash(export JAVA_HOME="C:\Android Studio\jbr" && export
+      ANDROID_HOME="C:\Users\jj193\Android\Sdk" && cd
+      "C:\Users\jj193\Desktop\PigBaby\android" && ./gradlew.bat ass…)
+  ⎿  > Configure project :app
+     WARNING: Using flatDir should be avoided because it doesn't support an
+     y meta-data formats.
+     … +171 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+● 打包成功。确认 APK 文件位置：
+
+  Listed 1 directory (ctrl+o to expand)
+
+● 需要先重新构建前端代码，再打包 APK。
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npm run build 2>&1)
+  ⎿  > pigbaby@1.0.0 build
+     > tsc -b && vite build
+     … +10 lines (ctrl+o to expand)
+  ⎿  (timeout 1m)
+
+● Bash(export JAVA_HOME="C:\Android Studio\jbr" && export
+      ANDROID_HOME="C:\Users\jj193\Android\Sdk" && cd
+      "C:\Users\jj193\Desktop\PigBaby" && npx cap sync android 2>&1…)
+  ⎿  √ Copying web assets from dist to android\app\src\main\assets\public i
+     n 26.23ms
+     √ Creating capacitor.config.json in android\app\src\main\assets in 1.6
+     … +180 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+  Listed 1 directory (ctrl+o to expand)
+● APK 打包成功！
+
+  文件路径： C:\Users\jj193\Desktop\PigBaby\android\app\build\outputs\apk\debug\
+  app-debug.apk
+  大小： 4.4MB
+  时间： 2026-06-04 18:00
+
+  直接将 APK 传到手机安装（覆盖更新，不要卸载旧版），数据会全部保留。
+
+✻ Sautéed for 1m 50s
+
+❯ 父亲节，情人节，母亲节等节日没有加上去，另外新增任务功能：可以给日期进行标注  
+  备注，被标注的日期会有特殊标识                                                
+
+  Read 1 file (ctrl+o to expand)
+
+● Write(~\Desktop\PigBaby\src\holidays.ts)
+  ⎿  Added 18 lines
+      15    { date: '2025-02-14', name: '情人节', emoji: '💕', type: 'gre
+          gorian' },
+      16    { date: '2025-03-08', name: '妇女节', emoji: '👩', type: 'gre
+          gorian' },
+      17    { date: '2025-04-01', name: '愚人节', emoji: '🃏', type: 'gre
+          gorian' },
+      18 +  { date: '2025-04-04', name: '清明节', emoji: '🌿', type: 'gre
+         +gorian' },                                                     
+      19    { date: '2025-05-01', name: '劳动节', emoji: '🛠️', type: 'gre
+          gorian' },
+      20    { date: '2025-05-04', name: '青年节', emoji: '🔥', type: 'gre
+          gorian' },
+      21 +  { date: '2025-05-11', name: '母亲节', emoji: '🌸', type: 'gre
+         +gorian' },                                                     
+      22    { date: '2025-06-01', name: '儿童节', emoji: '🧒', type: 'gre
+          gorian' },
+      23 +  { date: '2025-06-15', name: '父亲节', emoji: '👔', type: 'gre
+         +gorian' },                                                     
+      24    { date: '2025-07-01', name: '建党节', emoji: '🚩', type: 'gre
+          gorian' },
+      25    { date: '2025-08-01', name: '建军节', emoji: '⭐', type: 'gre
+          gorian' },
+      26    { date: '2025-09-10', name: '教师节', emoji: '📚', type: 'gre
+          gorian' },
+      27    { date: '2025-10-01', name: '国庆节', emoji: '🇨🇳', type: 'gre
+          gorian' },
+      28 +  { date: '2025-10-31', name: '万圣节', emoji: '🎃', type: 'gre
+         +gorian' },                                                     
+      29 +  { date: '2025-11-27', name: '感恩节', emoji: '🦃', type: 'gre
+         +gorian' },                                                     
+      30 +  { date: '2025-12-21', name: '冬至', emoji: '🥟', type: 'grego
+         +rian' },                                                       
+      31    { date: '2025-12-25', name: '圣诞节', emoji: '🎄', type: 'gre
+          gorian' },
+      32  
+      33    { date: '2026-01-01', name: '元旦', emoji: '🎉', type: 'grego
+          rian' },
+      34    { date: '2026-02-14', name: '情人节', emoji: '💕', type: 'gre
+          gorian' },
+      35    { date: '2026-03-08', name: '妇女节', emoji: '👩', type: 'gre
+          gorian' },
+      36    { date: '2026-04-01', name: '愚人节', emoji: '🃏', type: 'gre
+          gorian' },
+      37 +  { date: '2026-04-05', name: '清明节', emoji: '🌿', type: 'gre
+         +gorian' },                                                     
+      38    { date: '2026-05-01', name: '劳动节', emoji: '🛠️', type: 'gre
+          gorian' },
+      39    { date: '2026-05-04', name: '青年节', emoji: '🔥', type: 'gre
+          gorian' },
+      40 +  { date: '2026-05-10', name: '母亲节', emoji: '🌸', type: 'gre
+         +gorian' },                                                     
+      41    { date: '2026-06-01', name: '儿童节', emoji: '🧒', type: 'gre
+          gorian' },
+      42 +  { date: '2026-06-21', name: '父亲节', emoji: '👔', type: 'gre
+         +gorian' },                                                     
+      43    { date: '2026-07-01', name: '建党节', emoji: '🚩', type: 'gre
+          gorian' },
+      44    { date: '2026-08-01', name: '建军节', emoji: '⭐', type: 'gre
+          gorian' },
+      45    { date: '2026-09-10', name: '教师节', emoji: '📚', type: 'gre
+          gorian' },
+      46    { date: '2026-10-01', name: '国庆节', emoji: '🇨🇳', type: 'gre
+          gorian' },
+      47 +  { date: '2026-10-31', name: '万圣节', emoji: '🎃', type: 'gre
+         +gorian' },                                                     
+      48 +  { date: '2026-11-26', name: '感恩节', emoji: '🦃', type: 'gre
+         +gorian' },                                                     
+      49 +  { date: '2026-12-21', name: '冬至', emoji: '🥟', type: 'grego
+         +rian' },                                                       
+      50    { date: '2026-12-25', name: '圣诞节', emoji: '🎄', type: 'gre
+          gorian' },
+      51  
+      52    { date: '2027-01-01', name: '元旦', emoji: '🎉', type: 'grego
+          rian' },
+      53    { date: '2027-02-14', name: '情人节', emoji: '💕', type: 'gre
+          gorian' },
+      54    { date: '2027-03-08', name: '妇女节', emoji: '👩', type: 'gre
+          gorian' },
+      55    { date: '2027-04-01', name: '愚人节', emoji: '🃏', type: 'gre
+          gorian' },
+      56 +  { date: '2027-04-05', name: '清明节', emoji: '🌿', type: 'gre
+         +gorian' },                                                     
+      57    { date: '2027-05-01', name: '劳动节', emoji: '🛠️', type: 'gre
+          gorian' },
+      58    { date: '2027-05-04', name: '青年节', emoji: '🔥', type: 'gre
+          gorian' },
+      59 +  { date: '2027-05-09', name: '母亲节', emoji: '🌸', type: 'gre
+         +gorian' },                                                     
+      60    { date: '2027-06-01', name: '儿童节', emoji: '🧒', type: 'gre
+          gorian' },
+      61 +  { date: '2027-06-20', name: '父亲节', emoji: '👔', type: 'gre
+         +gorian' },                                                     
+      62    { date: '2027-07-01', name: '建党节', emoji: '🚩', type: 'gre
+          gorian' },
+      63    { date: '2027-08-01', name: '建军节', emoji: '⭐', type: 'gre
+          gorian' },
+      64    { date: '2027-09-10', name: '教师节', emoji: '📚', type: 'gre
+          gorian' },
+      65    { date: '2027-10-01', name: '国庆节', emoji: '🇨🇳', type: 'gre
+          gorian' },
+      66 +  { date: '2027-10-31', name: '万圣节', emoji: '🎃', type: 'gre
+         +gorian' },                                                     
+      67 +  { date: '2027-11-25', name: '感恩节', emoji: '🦃', type: 'gre
+         +gorian' },                                                     
+      68 +  { date: '2027-12-22', name: '冬至', emoji: '🥟', type: 'grego
+         +rian' },                                                       
+      69    { date: '2027-12-25', name: '圣诞节', emoji: '🎄', type: 'gre
+          gorian' },
+      70  
+      71    // ===== Lunar-based holidays (2025 - 乙巳蛇年) =====
+
+● Now add date annotation storage support.
+
+● Update(~\Desktop\PigBaby\src\storage.ts)
+  ⎿  Added 14 lines
+      116    records: CheckInRecord[];
+      117  }
+      118  
+      119 +// ========== Date Notes Types ==========                     
+      120 +                                                              
+      121 +export interface DateNote {                                   
+      122 +  id: string;                                                 
+      123 +  date: string;     // YYYY-MM-DD                             
+      124 +  note: string;                                               
+      125 +  createdAt: string;                                          
+      126 +}                                                             
+      127 +                                                              
+      128 +export interface DateNotesData {                              
+      129 +  notes: DateNote[];                                          
+      130 +}                                                             
+      131 +                                                              
+      132  // ========== Storage Keys ==========
+      133  
+      134  const STORAGE_KEY = 'pigbaby_data';
+      135 +const DATE_NOTES_KEY = 'pigbaby_date_notes';                  
+      136  const CUSTOM_TAGS_KEY = 'pigbaby_custom_tags';
+      137  const TAG_COLORS_KEY = 'pigbaby_tag_colors';
+      138  const SAVINGS_KEY = 'pigbaby_savings_goals';
+
+● Update(~\Desktop\PigBaby\src\storage.ts)
+  ⎿  Added 12 lines
+      256    await Preferences.set({ key: PROJECTS_KEY, value: JSON.strin
+           gify(data) });
+      257  }
+      258  
+      259 +// ========== Date Notes ==========                           
+      260 +                                                              
+      261 +export async function loadDateNotes(): Promise<DateNotesData> 
+          +{                                                             
+      262 +  const { value } = await Preferences.get({ key: DATE_NOTES_KE
+          +Y });                                                         
+      263 +  if (!value) return { notes: [] };                           
+      264 +  return JSON.parse(value) as DateNotesData;                  
+      265 +}                                                             
+      266 +                                                              
+      267 +export async function saveDateNotes(data: DateNotesData): Prom
+          +ise<void> {                                                   
+      268 +  await Preferences.set({ key: DATE_NOTES_KEY, value: JSON.str
+          +ingify(data) });                                              
+      269 +}                                                             
+      270 +                                                              
+      271  // ========== Export All ==========
+      272  
+      273  export async function exportAllData(): Promise<void> {
+
+● Update export/import to include date notes.
+
+● Update(~\Desktop\PigBaby\src\storage.ts)
+  ⎿  Added 3 lines, removed 1 line
+      271  // ========== Export All ==========
+      272  
+      273  export async function exportAllData(): Promise<void> {
+      274 -  const [data, customTags, tagColors, savings, tasks, checkin,
+          - tips, projects] = await Promise.all([                        
+      274 +  const [data, customTags, tagColors, savings, tasks, checkin,
+          + tips, projects, dateNotes] = await Promise.all([             
+      275      loadData(),
+      276      loadCustomTags(),
+      277      loadTagColors(),
+     ...
+      280      loadCheckIn(),
+      281      loadTips(),
+      282      loadProjects(),
+      283 +    loadDateNotes(),                                          
+      284    ]);
+      285    const all = {
+      286      pigbaby_data: data,
+     ...
+      291      checkin: checkin,
+      292      tips: tips,
+      293      projects: projects,
+      294 +    date_notes: dateNotes,                                    
+      295      exportedAt: new Date().toISOString(),
+      296    };
+      297    const blob = new Blob([JSON.stringify(all, null, 2)], { type
+           : 'application/json' });
+
+● Update(~\Desktop\PigBaby\src\storage.ts)
+  ⎿  Added 3 lines
+      333    if (json.projects) {
+      334      await saveProjects(json.projects as ProjectsData);
+      335    }
+      336 +  if (json.date_notes) {                                      
+      337 +    await saveDateNotes(json.date_notes as DateNotesData);    
+      338 +  }                                                           
+      339  }
+
+● Now update Tasks.tsx to add date annotation functionality. First, add the
+  imports.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 2 lines, removed 2 lines
+      1  import { useState, useEffect, useCallback, useMemo, useRef } fro
+         m 'react';
+      2 -import type { Task, TasksData } from '../storage';              
+      3 -import { loadTasks, saveTasks } from '../storage';              
+      2 +import type { Task, TasksData, DateNote, DateNotesData } from '.
+        +./storage';                                                     
+      3 +import { loadTasks, saveTasks, loadDateNotes, saveDateNotes } fr
+        +om '../storage';                                                
+      4  import AddTaskModal from '../components/AddTaskModal';
+      5  import DraggableFab from '../components/DraggableFab';
+      6  import CheckIn from '../components/CheckIn';
+● Add date notes state.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 3 lines
+      53    const [hideCompleted, setHideCompleted] = useState(true);
+      54    const [editingTask, setEditingTask] = useState<Task | null>(n
+          ull);
+      55    const [futureExpanded, setFutureExpanded] = useState(false);
+      56 +  const [dateNotes, setDateNotes] = useState<DateNote[]>([]);  
+      57 +  const [noteInput, setNoteInput] = useState('');              
+      58 +  const [editingNoteDate, setEditingNoteDate] = useState<string
+         + | null>(null);                                                
+      59  
+      60    const [undo, setUndo] = useState<UndoState | null>(null);
+      61    const [undoVisible, setUndoVisible] = useState(false);
+
+● Add date notes loading and helpers.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 2 lines
+      65    const refresh = useCallback(async () => {
+      66      const t = await loadTasks();
+      67      setTasks(t.tasks);
+      68 +    const n = await loadDateNotes();                           
+      69 +    setDateNotes(n.notes);                                     
+      70    }, []);
+      71  
+      72    useEffect(() => { refresh(); }, [refresh]);
+
+● Add date notes memoized data and the note map.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 10 lines
+      104    const holidayDates = useMemo(() => getHolidayDates(), []);
+      105    const selectedHoliday = useMemo(() => getHoliday(selectedDat
+           e), [selectedDate]);
+      106  
+      107 +  const noteDates = useMemo(() => {                           
+      108 +    const set = new Set<string>();                            
+      109 +    for (const n of dateNotes) set.add(n.date);               
+      110 +    return set;                                               
+      111 +  }, [dateNotes]);                                            
+      112 +                                                              
+      113 +  const selectedNote = useMemo(() => {                        
+      114 +    return dateNotes.find((n) => n.date === selectedDate);    
+      115 +  }, [dateNotes, selectedDate]);                              
+      116 +                                                              
+      117    // Calendar data
+      118    const firstDay = getFirstDayOfWeek(calYear, calMonth);
+      119    const totalDays = daysInMonth(calYear, calMonth);
+
+● Add note CRUD handlers.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 31 lines
+      187      await refresh();
+      188    };
+      189  
+      190 +  const handleSaveNote = async () => {                        
+      191 +    if (!noteInput.trim()) return;                            
+      192 +    const existing = dateNotes.find((n) => n.date === selected
+          +Date);                                                        
+      193 +    let updated: DateNote[];                                  
+      194 +    if (existing) {                                           
+      195 +      updated = dateNotes.map((n) =>                          
+      196 +        n.id === existing.id ? { ...n, note: noteInput.trim() 
+          +} : n                                                         
+      197 +      );                                                      
+      198 +    } else {                                                  
+      199 +      const newNote: DateNote = {                             
+      200 +        id: Date.now().toString(),                            
+      201 +        date: selectedDate,                                   
+      202 +        note: noteInput.trim(),                               
+      203 +        createdAt: new Date().toISOString(),                  
+      204 +      };                                                      
+      205 +      updated = [...dateNotes, newNote];                      
+      206 +    }                                                         
+      207 +    await saveDateNotes({ notes: updated });                  
+      208 +    setDateNotes(updated);                                    
+      209 +    setNoteInput('');                                         
+      210 +    setEditingNoteDate(null);                                 
+      211 +  };                                                          
+      212 +                                                              
+      213 +  const handleDeleteNote = async () => {                      
+      214 +    const updated = dateNotes.filter((n) => n.date !== selecte
+          +dDate);                                                       
+      215 +    await saveDateNotes({ notes: updated });                  
+      216 +    setDateNotes(updated);                                    
+      217 +    setNoteInput('');                                         
+      218 +    setEditingNoteDate(null);                                 
+      219 +  };                                                          
+      220 +                                                              
+      221    const handleSaveEdit = async (updatedTask: Task) => {
+      222      const updated = tasks.map((t) =>
+      223        t.id === updatedTask.id ? updatedTask : t
+
+● Update calendar day rendering to show annotation dots.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 8 lines, removed 6 lines
+      342            {calendarDays.map(({ day, month, dateStr }) => {
+      343              const isHoliday = holidayDates.has(dateStr);
+      344              const holiday = getHoliday(dateStr);
+      345 +            const hasTask = taskDates.has(dateStr);           
+      346 +            const hasNote = noteDates.has(dateStr);           
+      347              return (
+      348              <div
+      349                key={dateStr}
+      348 -              className={`mini-cal-day ${month !== 'current' ?
+          - 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr =
+          -== selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : '
+          -'}`}                                                          
+      350 +              className={`mini-cal-day ${month !== 'current' ?
+          + 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr =
+          +== selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : '
+          +'} ${hasNote ? 'annotated' : ''}`}                            
+      351                onClick={() => {
+      352                  if (month === 'current') setSelectedDate(dateS
+           tr);
+      353                }}
+      354              >
+      355                {day}
+      354 -              {isHoliday ? (                                  
+      355 -                <span className="mini-cal-holiday" title={holi
+          -day?.name}>{holiday?.emoji}</span>                            
+      356 -              ) : taskDates.has(dateStr) ? (                  
+      357 -                <span className="mini-cal-dot" />             
+      358 -              ) : null}                                       
+      356 +              <span className="mini-cal-indicators">          
+      357 +                {isHoliday && <span className="mini-cal-holida
+          +y" title={holiday?.name}>{holiday?.emoji}</span>}             
+      358 +                {hasTask && !isHoliday && <span className="min
+          +i-cal-dot" />}                                                
+      359 +                {hasNote && <span className="mini-cal-note-dot
+          +" title="有备注" />}                                          
+      360 +              </span>                                         
+      361              </div>
+      362            )})}
+      363          </div>
+
+● Add the annotation UI section below the calendar.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 30 lines
+      363          </div>
+      364        </div>
+      365  
+      366 +      {/* Date Note */}                                       
+      367 +      <div className="date-note-area">                        
+      368 +        {selectedNote && editingNoteDate !== selectedDate ? ( 
+      369 +          <div className="date-note-display">                 
+      370 +            <span className="date-note-icon">📝</span>        
+      371 +            <span className="date-note-text">{selectedNote.not
+          +e}</span>                                                     
+      372 +            <button className="date-note-edit-btn" onClick={()
+          + => { setNoteInput(selectedNote.note); setEditingNoteDate(sele
+          +ctedDate); }}>编辑</button>                                   
+      373 +            <button className="date-note-del-btn" onClick={han
+          +dleDeleteNote}>✕</button>                                     
+      374 +          </div>                                              
+      375 +        ) : editingNoteDate === selectedDate ? (              
+      376 +          <div className="date-note-edit">                    
+      377 +            <input                                            
+      378 +              className="date-note-input"                     
+      379 +              type="text"                                     
+      380 +              placeholder="输入日期备注..."                   
+      381 +              value={noteInput}                               
+      382 +              onChange={(e) => setNoteInput(e.target.value)}  
+      383 +              onKeyDown={(e) => { if (e.key === 'Enter') handl
+          +eSaveNote(); if (e.key === 'Escape') { setEditingNoteDate(null
+          +); setNoteInput(''); } }}                                     
+      384 +              autoFocus                                       
+      385 +            />                                                
+      386 +            <button className="date-note-save-btn" onClick={ha
+          +ndleSaveNote}>保存</button>                                   
+      387 +            <button className="date-note-cancel-btn" onClick={
+          +() => { setEditingNoteDate(null); setNoteInput(''); }}>取消</b
+          +utton>                                                        
+      388 +          </div>                                              
+      389 +        ) : (                                                 
+      390 +          <button className="date-note-add-btn" onClick={() =>
+          + { setNoteInput(''); setEditingNoteDate(selectedDate); }}>    
+      391 +            + 添加备注                                        
+      392 +          </button>                                           
+      393 +        )}                                                    
+      394 +      </div>                                                  
+      395 +                                                              
+      396        {/* Task List */}
+      397        <div>
+      398          <div style={{ display: 'flex', alignItems: 'center', j
+           ustifyContent: 'space-between', marginBottom: 10 }}>
+
+● Add CSS styles for date annotations.
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Accounting.css)
+  ⎿  Added 25 lines, removed 7 lines
+      889    opacity: 0.4;
+      890  }
+      891  
+      892 +.mini-cal-indicators {                                        
+      893 +  display: flex;                                              
+      894 +  gap: 2px;                                                   
+      895 +  justify-content: center;                                    
+      896 +  align-items: center;                                        
+      897 +  position: absolute;                                         
+      898 +  bottom: 1px;                                                
+      899 +}                                                             
+      900 +                                                              
+      901  .mini-cal-dot {
+      893 -  width: 6px;                                                 
+      894 -  height: 6px;                                                
+      902 +  width: 5px;                                                 
+      903 +  height: 5px;                                                
+      904    border-radius: 50%;
+      905    background: var(--primary);
+      897 -  position: absolute;                                         
+      898 -  bottom: 3px;                                                
+      906 +  flex-shrink: 0;                                             
+      907  }
+      908  
+      909  .mini-cal-day.holiday {
+      910    background: #FFF8E7;
+      911  }
+      912  
+      913 +.mini-cal-day.annotated {                                     
+      914 +}                                                             
+      915 +                                                              
+      916  .mini-cal-holiday {
+      906 -  font-size: 10px;                                            
+      907 -  position: absolute;                                         
+      908 -  bottom: 1px;                                                
+      917 +  font-size: 9px;                                             
+      918    line-height: 1;
+      919 +  flex-shrink: 0;                                             
+      920  }
+      921  
+      922 +.mini-cal-note-dot {                                          
+      923 +  width: 5px;                                                 
+      924 +  height: 5px;                                                
+      925 +  border-radius: 50%;                                         
+      926 +  background: #6BC5D9;                                        
+      927 +  flex-shrink: 0;                                             
+      928 +}                                                             
+      929 +                                                              
+      930  /* Task List */
+      931  .task-section-title {
+      932    font-size: 13px;
+
+  Read 1 file (ctrl+o to expand)
+
+● Update(~\Desktop\PigBaby\src\pages\Accounting.css)
+  ⎿  Added 115 lines
+      1085    padding: 6px 4px 4px;
+      1086  }
+      1087  
+      1088 +/* Date Note */                                              
+      1089 +.date-note-area {                                            
+      1090 +  margin-bottom: 4px;                                        
+      1091 +}                                                            
+      1092 +                                                             
+      1093 +.date-note-add-btn {                                         
+      1094 +  width: 100%;                                               
+      1095 +  padding: 8px;                                              
+      1096 +  border: 1px dashed var(--border);                          
+      1097 +  border-radius: var(--radius-xs);                           
+      1098 +  background: transparent;                                   
+      1099 +  color: var(--text-muted);                                  
+      1100 +  font-size: 13px;                                           
+      1101 +  cursor: pointer;                                           
+      1102 +  transition: all 0.2s;                                      
+      1103 +}                                                            
+      1104 +                                                             
+      1105 +.date-note-add-btn:hover {                                   
+      1106 +  border-color: var(--primary);                              
+      1107 +  color: var(--primary-dark);                                
+      1108 +  background: var(--primary-light);                          
+      1109 +}                                                            
+      1110 +                                                             
+      1111 +.date-note-display {                                         
+      1112 +  display: flex;                                             
+      1113 +  align-items: center;                                       
+      1114 +  gap: 8px;                                                  
+      1115 +  padding: 8px 10px;                                         
+      1116 +  background: #F0F8FA;                                       
+      1117 +  border: 1px solid #D4E8EF;                                 
+      1118 +  border-radius: var(--radius-xs);                           
+      1119 +}                                                            
+      1120 +                                                             
+      1121 +.date-note-icon {                                            
+      1122 +  font-size: 14px;                                           
+      1123 +  flex-shrink: 0;                                            
+      1124 +}                                                            
+      1125 +                                                             
+      1126 +.date-note-text {                                            
+      1127 +  flex: 1;                                                   
+      1128 +  font-size: 13px;                                           
+      1129 +  color: var(--text);                                        
+      1130 +  min-width: 0;                                              
+      1131 +  overflow: hidden;                                          
+      1132 +  text-overflow: ellipsis;                                   
+      1133 +  white-space: nowrap;                                       
+      1134 +}                                                            
+      1135 +                                                             
+      1136 +.date-note-edit-btn {                                        
+      1137 +  font-size: 11px;                                           
+      1138 +  padding: 3px 8px;                                          
+      1139 +  border-radius: 8px;                                        
+      1140 +  background: var(--primary-light);                          
+      1141 +  color: var(--primary-dark);                                
+      1142 +  border: none;                                              
+      1143 +  cursor: pointer;                                           
+      1144 +  flex-shrink: 0;                                            
+      1145 +}                                                            
+      1146 +                                                             
+      1147 +.date-note-del-btn {                                         
+      1148 +  font-size: 12px;                                           
+      1149 +  width: 22px;                                               
+      1150 +  height: 22px;                                              
+      1151 +  border-radius: 50%;                                        
+      1152 +  background: transparent;                                   
+      1153 +  color: var(--text-muted);                                  
+      1154 +  border: none;                                              
+      1155 +  cursor: pointer;                                           
+      1156 +  flex-shrink: 0;                                            
+      1157 +  display: flex;                                             
+      1158 +  align-items: center;                                       
+      1159 +  justify-content: center;                                   
+      1160 +}                                                            
+      1161 +                                                             
+      1162 +.date-note-del-btn:hover {                                   
+      1163 +  background: #FFE0E5;                                       
+      1164 +  color: #E8708A;                                            
+      1165 +}                                                            
+      1166 +                                                             
+      1167 +.date-note-edit {                                            
+      1168 +  display: flex;                                             
+      1169 +  gap: 6px;                                                  
+      1170 +  align-items: center;                                       
+      1171 +}                                                            
+      1172 +                                                             
+      1173 +.date-note-input {                                           
+      1174 +  flex: 1;                                                   
+      1175 +  padding: 7px 10px;                                         
+      1176 +  border: 1px solid var(--primary);                          
+      1177 +  border-radius: var(--radius-xs);                           
+      1178 +  font-size: 13px;                                           
+      1179 +  background: #fff;                                          
+      1180 +  outline: none;                                             
+      1181 +}                                                            
+      1182 +                                                             
+      1183 +.date-note-save-btn {                                        
+      1184 +  padding: 6px 12px;                                         
+      1185 +  background: var(--primary);                                
+      1186 +  color: #fff;                                               
+      1187 +  border-radius: var(--radius-xs);                           
+      1188 +  font-size: 12px;                                           
+      1189 +  font-weight: 600;                                          
+      1190 +  cursor: pointer;                                           
+      1191 +  white-space: nowrap;                                       
+      1192 +}                                                            
+      1193 +                                                             
+      1194 +.date-note-cancel-btn {                                      
+      1195 +  padding: 6px 10px;                                         
+      1196 +  background: transparent;                                   
+      1197 +  color: var(--text-muted);                                  
+      1198 +  font-size: 12px;                                           
+      1199 +  cursor: pointer;                                           
+      1200 +  white-space: nowrap;                                       
+      1201 +}                                                            
+      1202 +                                                             
+      1203  /* FAB */
+      1204  .fab {
+      1205    position: fixed;
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npx tsc --noEmit 2>&1)
+  ⎿  (No output)
+● Clean compilation. Let me mark the task complete and build the APK.
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npm run build 2>&1 && export
+      JAVA_HOME="C:\Android Studio\jbr" && export
+      ANDROID_HOME="C:\Users\jj193\Android\Sdk" && npx…)
+  ⎿  Error: Exit code 2
+
+     > pigbaby@1.0.0 build
+     > tsc -b && vite build
+
+     src/pages/Tasks.tsx(2,42): error TS6196: 'DateNotesData' is declared but 
+     never used.
+
+● Update(~\Desktop\PigBaby\src\pages\Tasks.tsx)
+  ⎿  Added 1 line, removed 1 line
+      1  import { useState, useEffect, useCallback, useMemo, useRef } fro
+         m 'react';
+      2 -import type { Task, TasksData, DateNote, DateNotesData } from '.
+        -./storage';                                                     
+      2 +import type { Task, TasksData, DateNote } from '../storage';    
+      3  import { loadTasks, saveTasks, loadDateNotes, saveDateNotes } fr
+         om '../storage';
+      4  import AddTaskModal from '../components/AddTaskModal';
+      5  import DraggableFab from '../components/DraggableFab';
+
+● Bash(cd "C:\Users\jj193\Desktop\PigBaby" && npm run build 2>&1 && export
+      JAVA_HOME="C:\Android Studio\jbr" && export
+      ANDROID_HOME="C:\Users\jj193\Android\Sdk" && npx…)
+  ⎿  > pigbaby@1.0.0 build
+     > tsc -b && vite build
+     … +193 lines (ctrl+o to expand)
+  ⎿  (timeout 5m)
+
+● BUILD SUCCESSFUL。APK 已打包完成！
+
+  文件： C:\Users\jj193\Desktop\PigBaby\android\app\build\outputs\apk\debug\app-
+  debug.apk
+
+  ---
+  本次更新摘要
+
+  新增节日：
+  - 母亲节（🌸）、父亲节（👔）、清明节（🌿）
+  - 冬至（🥟）、万圣节（🎃）、感恩节（🦃）
+
+  日期备注功能：
+  - 点击日历上的日期可以添加备注
+  - 日历上有备注的日期显示蓝色小圆点（区别于粉色的任务圆点和节日 emoji）
+  - 选中日期后，日历下方显示备注区域：
+    - 无备注时显示 "+ 添加备注" 虚线按钮
+    - 有备注时显示备注内容 + 编辑/删除按钮
+    - 点击编辑进入输入模式（支持回车保存、Esc 取消）
+
+✻ Brewed for 3m 58s
