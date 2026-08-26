@@ -1,0 +1,39 @@
+══════════════════════════════════════════════
+PigBaby 开发记录 · 2026-08-27（深色会话摘录）
+══════════════════════════════════════════════
+
+【本次修复】用户反馈两个问题：
+
+1. 任务设置了提醒时间但到点没有收到本地通知
+   - 排查发现两处隐患：
+     a) 通知 id 由任务 id 哈希生成，可能超过 int 上限，
+        插件 cancel/update 用 getInt() 解析会抛异常，导致
+        resync 时先取消再重排的流程中断，提醒整体失效。
+        → notifIdForTask 改为 (h & 0x7fffffff) || 1，保证正 int。
+     b) 调度失败（通知权限被拒 / 精确闹钟未授权降级为不精确）
+        被静默吞掉，用户毫无感知。
+        → scheduleTaskReminder 现在返回状态
+          （scheduled / inexact / permission-needed / failed），
+          Tasks 页在保存带提醒的任务后弹窗提示：
+          · 未开通知权限 → 引导允许
+          · 精确闹钟未授权 → 提示到"设置→应用→PigBaby→闹钟和提醒"开启
+            并调用 changeExactNotificationSetting 直达该设置页
+   - 注意：Android 12+ 首次设置提醒时，插件会自动弹出
+     "闹钟和提醒"设置页，若用户直接退出，提醒降级为不精确闹钟，
+     可能延迟；国产 ROM 上 App 被划掉后台也可能不响，
+     需要开"自启动"。
+
+2. 点击"授权短信"直接提示失败，系统权限弹窗不出现
+   - 根因：@CapacitorPlugin 的权限 launcher 机制在设备上
+     请求 READ_SMS 时未注册回调即被拒（无弹窗、立即 reject）。
+   - 修复：SmsReaderPlugin 改用 legacy 权限流程：
+     @NativePlugin(permissionRequestCode=7711) +
+     ActivityCompat.requestPermissions 直接发起请求 +
+     handleRequestPermissionsResult 回传结果，确定性分发。
+   - SmsAutoPanel 顺带修复：toggle 开关闭包读到旧 permission
+     导致授权成功后仍无法开启；失败时展示真实错误消息。
+
+【其他】
+- 合并上一提交 ff95acc（已过期任务与当天任务统一排序）
+- 构建：npm run build + npx cap sync android + gradlew assembleDebug 均通过
+- APK：android/app/build/outputs/apk/debug/app-debug.apk

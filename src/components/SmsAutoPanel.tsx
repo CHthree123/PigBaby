@@ -34,15 +34,20 @@ export default function SmsAutoPanel({ records, onImported }: Props) {
       const res = await SmsReader.requestPermission();
       setPermission(res.granted);
       setStatusText(res.granted ? '已获得短信权限' : '未获得短信权限，无法自动记账');
-    } catch {
-      setStatusText('申请权限失败');
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || String(e);
+      setStatusText(`申请权限失败：${msg}`);
     }
   };
 
   const toggle = async () => {
-    if (!enabled && permission === false) {
-      await grantPermission();
-      if (permission === false) return;
+    if (!enabled && permission !== true) {
+      const res = await SmsReader.requestPermission().catch(() => null);
+      if (!res?.granted) {
+        setStatusText('未获得短信权限，无法自动记账');
+        return;
+      }
+      setPermission(true);
     }
     const next = !enabled;
     setEnabled(next);

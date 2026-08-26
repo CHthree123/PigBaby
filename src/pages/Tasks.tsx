@@ -8,7 +8,19 @@ import Tips from '../components/Tips';
 import Projects from '../components/Project';
 import EmptyState from '../components/EmptyState';
 import { getHoliday, getHolidayDates } from '../holidays';
-import { ensureNotificationPermission, resyncReminders } from '../notifications';
+import { ensureNotificationPermission, resyncReminders, scheduleTaskReminder, openExactAlarmSettings, type ReminderScheduleResult } from '../notifications';
+
+// After setting a reminder, tell the user what happened instead of failing silently
+function feedbackReminder(r: ReminderScheduleResult) {
+  if (r.status === 'permission-needed') {
+    alert('未开启通知权限，无法发送任务提醒。请在系统弹窗中点击"允许"，再重新设置提醒时间。');
+  } else if (r.status === 'failed') {
+    alert(`提醒设置失败：${r.message}`);
+  } else if (r.status === 'inexact') {
+    alert('提醒已设置，但系统未授予"闹钟和提醒"权限，到点可能不准时。可到 设置→应用→PigBaby→闹钟和提醒 开启精确闹钟。');
+    openExactAlarmSettings();
+  }
+}
 
 function todayStr(): string {
   const d = new Date();
@@ -199,13 +211,16 @@ export default function Tasks() {
     const maxOrder = Math.max(0, ...tasks.map((t) => t.order));
     const newTask = { ...task, order: maxOrder + 1 };
     const updated: TasksData = { tasks: [...tasks, newTask] };
+    let scheduleResult: ReminderScheduleResult | null = null;
     if (newTask.reminder) {
       await ensureNotificationPermission();
+      scheduleResult = await scheduleTaskReminder(newTask);
     }
     await saveTasks(updated);
     setShowAddModal(false);
     setSelectedDate(task.date);
     await refresh();
+    if (scheduleResult) feedbackReminder(scheduleResult);
   };
 
   const handleSaveNote = async () => {
@@ -245,8 +260,13 @@ export default function Tasks() {
     );
     await saveTasks({ tasks: updated });
     setTasks(updated);
+    let scheduleResult: ReminderScheduleResult | null = null;
+    if (updatedTask.reminder) {
+      scheduleResult = await scheduleTaskReminder(updatedTask);
+    }
     await resyncReminders(updated);
     setEditingTask(null);
+    if (scheduleResult) feedbackReminder(scheduleResult);
   };
 
   const handleDeleteTask = async (taskId: string) => {
