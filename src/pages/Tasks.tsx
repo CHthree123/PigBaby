@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { Task, TasksData, DateNote } from '../storage';
 import { loadTasks, saveTasks, loadDateNotes, saveDateNotes } from '../storage';
 import AddTaskModal from '../components/AddTaskModal';
@@ -52,6 +53,7 @@ type SubTab = 'tasks' | 'calendar' | 'checkin' | 'tips' | 'projects';
 export default function Tasks() {
   const today = todayStr();
   const now = new Date();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [calYear, setCalYear] = useState(now.getFullYear());
@@ -66,7 +68,26 @@ export default function Tasks() {
     subTabKeyRef.current += 1;
     setSubTabKey(subTabKeyRef.current);
     setSubTabRaw(v);
+    if (v !== 'calendar' && searchParams.get('view') === 'calendar') {
+      const next = new URLSearchParams(searchParams);
+      next.delete('view');
+      setSearchParams(next, { replace: true });
+    }
   };
+
+  // Bottom-nav 日历 entry (navigate('/tasks?view=calendar')) selects the view
+  useEffect(() => {
+    const wantCalendar = searchParams.get('view') === 'calendar';
+    if (wantCalendar && subTab !== 'calendar') {
+      subTabKeyRef.current += 1;
+      setSubTabKey(subTabKeyRef.current);
+      setSubTabRaw('calendar');
+    } else if (!wantCalendar && subTab === 'calendar') {
+      subTabKeyRef.current += 1;
+      setSubTabKey(subTabKeyRef.current);
+      setSubTabRaw('tasks');
+    }
+  }, [searchParams, subTab]);
 
   const [hideCompleted, setHideCompleted] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -354,7 +375,6 @@ export default function Tasks() {
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
-          <button className="ac-subnav-btn active" onClick={() => setSubTab('calendar')}>日历</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
@@ -458,7 +478,6 @@ export default function Tasks() {
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>日历</button>
           <button className="ac-subnav-btn active" onClick={() => setSubTab('checkin')}>打卡</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
@@ -473,7 +492,6 @@ export default function Tasks() {
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>日历</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
           <button className="ac-subnav-btn active" onClick={() => setSubTab('tips')}>Tips</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
@@ -488,7 +506,6 @@ export default function Tasks() {
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>日历</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
           <button className="ac-subnav-btn active" onClick={() => setSubTab('projects')}>工程</button>
@@ -512,7 +529,7 @@ export default function Tasks() {
       {/* Week strip: quick date switching (full calendar lives in 日历) */}
       <div className="week-strip">
         <div className="week-strip-header">
-          <span className="week-strip-label">📅 {weekLabel}</span>
+          <span className="week-strip-label">{weekLabel}</span>
           <button
             className="week-strip-today"
             onClick={() => { setWeekOffset(0); setSelectedDate(today); }}

@@ -67,6 +67,9 @@ function App() {
     return location.pathname.startsWith(path);
   };
 
+  const isTasksView = location.pathname.startsWith('/tasks');
+  const isCalendarView = isTasksView && location.search.includes('view=calendar');
+
   return (
     <div className="app-shell">
       <main className="app-main">
@@ -86,6 +89,15 @@ function App() {
           <span className="nav-label">记账</span>
         </button>
 
+        {/* 日历：打开任务模块的日历视图 */}
+        <button
+          className={`nav-item ${isTasksView && isCalendarView ? 'active' : ''}`}
+          onClick={() => navigate('/tasks?view=calendar')}
+        >
+          <span className="nav-icon">📅</span>
+          <span className="nav-label">日历</span>
+        </button>
+
         {/* Center protruding pig */}
         <div className="nav-center-wrap">
           <button
@@ -98,7 +110,7 @@ function App() {
 
         {/* Right tab: 任务 */}
         <button
-          className={`nav-item ${isActive('/tasks') ? 'active' : ''}`}
+          className={`nav-item ${isTasksView && !isCalendarView ? 'active' : ''}`}
           onClick={() => navigate('/tasks')}
         >
           <span className="nav-icon">📋</span>

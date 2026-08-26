@@ -8,6 +8,7 @@ import android.media.AudioAttributes;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
@@ -15,6 +16,9 @@ public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    // Hide the status bar so the app occupies the very top of the screen
+    getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
     // Disable WebView cache during development so updates always load fresh
     WebView webView = getBridge().getWebView();
