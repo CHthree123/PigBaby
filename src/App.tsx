@@ -5,11 +5,21 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import Accounting from './pages/Accounting';
 import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
+import { loadTheme, type ThemeName } from './storage';
 import './App.css';
 
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [theme, setTheme] = useState<ThemeName>('light');
+
+  useEffect(() => {
+    loadTheme().then(setTheme);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle('theme-dark', theme === 'dark');
+  }, [theme]);
 
   useEffect(() => {
     const splash = document.getElementById('splash');
@@ -64,7 +74,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Accounting />} />
           <Route path="/tasks" element={<Tasks />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile theme={theme} onThemeChange={setTheme} />} />
         </Routes>
       </main>
       <nav className="bottom-nav">

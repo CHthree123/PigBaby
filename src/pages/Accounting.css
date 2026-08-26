@@ -65,11 +65,11 @@
   transform: scale(0.9);
 }
 
-/* Balance Card */
+/* Balance Card — compact */
 .ac-balance-card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  padding: 28px 24px;
+  padding: 16px 14px;
   text-align: center;
   box-shadow: var(--shadow-lg);
   position: relative;
@@ -135,22 +135,22 @@
 }
 
 .ac-balance-label {
-  font-size: 14px;
+  font-size: 12px;
   opacity: 0.9;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-weight: 500;
 }
 
 .ac-balance-amount {
-  font-size: 52px;
+  font-size: 34px;
   font-weight: 800;
   letter-spacing: -1px;
   line-height: 1.1;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .ac-balance-symbol {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 500;
   margin-right: 2px;
 }
@@ -162,7 +162,7 @@
   gap: 0;
   background: rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-sm);
-  padding: 12px 16px;
+  padding: 8px 12px;
 }
 
 .ac-balance-detail-item {
@@ -173,37 +173,37 @@
 }
 
 .ac-detail-label {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.8;
 }
 
 .ac-detail-value {
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .ac-balance-divider {
   width: 1px;
-  height: 32px;
+  height: 22px;
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Action Buttons */
+/* Action Buttons — compact pills */
 .ac-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .ac-btn {
   flex: 1;
-  padding: 16px;
-  border-radius: 30px;
-  font-size: 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   box-shadow: var(--shadow);
   transition: all 0.15s;
 }
@@ -223,8 +223,26 @@
 }
 
 .ac-btn-icon {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 700;
+}
+
+/* Show-more button under the recent records list */
+.ac-more-btn {
+  display: block;
+  margin: 10px auto 0;
+  padding: 9px 26px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s;
+}
+
+.ac-more-btn:active {
+  transform: scale(0.94);
 }
 
 /* Records Section */
@@ -1037,7 +1055,7 @@
 
 .task-item.expired {
   border-left: 3px solid #FF6B6B;
-  background: #fff5f5;
+  background: var(--danger-light);
 }
 
 .task-item.completed {
@@ -1323,7 +1341,8 @@
   border: 1px solid var(--primary);
   border-radius: var(--radius-xs);
   font-size: 13px;
-  background: #fff;
+  background: var(--card-bg);
+  color: var(--text);
   outline: none;
 }
 
@@ -1542,11 +1561,11 @@
   bottom: calc(90px + env(safe-area-inset-bottom, 0));
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: #fff;
+  background: var(--card-bg);
   color: var(--text);
   padding: 12px 20px;
   border-radius: 30px;
-  box-shadow: 0 4px 20px rgba(255, 155, 179, 0.3);
+  box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1593,8 +1612,8 @@
 
 .task-item.dragging {
   transform: scale(1.03);
-  box-shadow: 0 8px 24px rgba(255, 155, 179, 0.35);
-  background: #fff;
+  box-shadow: var(--shadow-lg);
+  background: var(--card-bg);
   opacity: 0.95;
 }
 

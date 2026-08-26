@@ -448,12 +448,12 @@ export default function CheckIn() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   className="tag-chip" type="button"
-                  style={{ flex: 1, padding: '10px 20px', background: goalType === 'weekly' ? 'var(--primary)' : 'var(--bg)', color: goalType === 'weekly' ? '#fff' : 'var(--text-secondary)' }}
+                  style={{ flex: 1, padding: '10px 20px', background: goalType === 'weekly' ? 'var(--primary)' : 'var(--bg)', color: goalType === 'weekly' ? 'var(--on-primary)' : 'var(--text-secondary)' }}
                   onClick={() => { setGoalType('weekly'); setGoalCount(Math.min(goalCount, 7)); }}
                 >📅 周目标</button>
                 <button
                   className="tag-chip" type="button"
-                  style={{ flex: 1, padding: '10px 20px', background: goalType === 'monthly' ? 'var(--primary)' : 'var(--bg)', color: goalType === 'monthly' ? '#fff' : 'var(--text-secondary)' }}
+                  style={{ flex: 1, padding: '10px 20px', background: goalType === 'monthly' ? 'var(--primary)' : 'var(--bg)', color: goalType === 'monthly' ? 'var(--on-primary)' : 'var(--text-secondary)' }}
                   onClick={() => { setGoalType('monthly'); setGoalCount(Math.min(goalCount, 31)); }}
                 >🗓 月目标</button>
               </div>

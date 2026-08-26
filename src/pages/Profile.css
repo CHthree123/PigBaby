@@ -99,3 +99,41 @@
   background: var(--border);
   margin: 10px 0;
 }
+
+.profile-theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-theme-options {
+  display: flex;
+  gap: 8px;
+}
+
+.profile-theme-opt {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.profile-theme-opt.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.profile-theme-opt.dark.active {
+  border-color: #6EE7F0;
+  background: rgba(110, 231, 240, 0.14);
+  color: #6EE7F0;
+}

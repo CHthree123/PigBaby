@@ -124,6 +124,17 @@
   animation: pigJump 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Dark theme: cyber neon pig */
+.theme-dark .nav-pig-btn {
+  background: linear-gradient(135deg, #6EE7F0, #A78BFA);
+  box-shadow: 0 4px 22px rgba(110, 231, 240, 0.45),
+              0 0 0 1.5px rgba(110, 231, 240, 0.4);
+}
+
+.theme-dark .bottom-nav {
+  box-shadow: 0 -2px 14px rgba(110, 231, 240, 0.08);
+}
+
 @keyframes pigIdle {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }

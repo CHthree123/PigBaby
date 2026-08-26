@@ -149,6 +149,7 @@ const CUSTOM_TAGS_KEY = 'pigbaby_custom_tags';
 const TAG_COLORS_KEY = 'pigbaby_tag_colors';
 const TAG_NOTES_KEY = 'pigbaby_tag_notes';
 const SAVINGS_KEY = 'pigbaby_savings_goals';
+const THEME_KEY = 'pigbaby_theme';
 const TASKS_KEY = 'pigbaby_tasks';
 const CHECKIN_KEY = 'pigbaby_checkin';
 const TIPS_KEY = 'pigbaby_tips';
@@ -304,6 +305,19 @@ export async function saveProjects(data: ProjectsData): Promise<void> {
   await Preferences.set({ key: PROJECTS_KEY, value: JSON.stringify(data) });
 }
 
+// ========== Theme ==========
+
+export type ThemeName = 'light' | 'dark';
+
+export async function loadTheme(): Promise<ThemeName> {
+  const { value } = await Preferences.get({ key: THEME_KEY });
+  return value === 'dark' ? 'dark' : 'light';
+}
+
+export async function saveTheme(t: ThemeName): Promise<void> {
+  await Preferences.set({ key: THEME_KEY, value: t });
+}
+
 // ========== Date Notes ==========
 
 export async function loadDateNotes(): Promise<DateNotesData> {
@@ -319,7 +333,7 @@ export async function saveDateNotes(data: DateNotesData): Promise<void> {
 // ========== Export All ==========
 
 export async function exportAllData(): Promise<void> {
-  const [data, customTags, tagColors, tagNotes, savings, tasks, checkin, tips, projects, dateNotes] = await Promise.all([
+  const [data, customTags, tagColors, tagNotes, savings, tasks, checkin, tips, projects, dateNotes, theme] = await Promise.all([
     loadData(),
     loadCustomTags(),
     loadTagColors(),
@@ -330,12 +344,14 @@ export async function exportAllData(): Promise<void> {
     loadTips(),
     loadProjects(),
     loadDateNotes(),
+    loadTheme(),
   ]);
   const all = {
     pigbaby_data: data,
     custom_tags: customTags,
     tag_colors: tagColors,
     tag_notes: tagNotes,
+    theme: theme,
     savings_goals: savings,
     tasks: tasks,
     checkin: checkin,
@@ -370,6 +386,9 @@ export async function importAllData(json: Record<string, unknown>): Promise<void
   }
   if (json.tag_notes) {
     await saveTagNotes(json.tag_notes as TagNotes);
+  }
+  if (json.theme) {
+    await saveTheme(json.theme as ThemeName);
   }
   if (json.savings_goals) {
     await saveSavingsGoals(json.savings_goals as SavingsData);

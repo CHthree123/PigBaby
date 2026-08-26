@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import SmsAutoPanel from '../components/SmsAutoPanel';
+import { saveTheme, type ThemeName } from '../storage';
 import './Profile.css';
 
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4.0';
 
-export default function Profile() {
+interface Props {
+  theme: ThemeName;
+  onThemeChange: (t: ThemeName) => void;
+}
+
+export default function Profile({ theme, onThemeChange }: Props) {
   const navigate = useNavigate();
   const [notifStatus, setNotifStatus] = useState('检查中…');
   const [alarmStatus, setAlarmStatus] = useState('检查中…');
@@ -49,6 +55,11 @@ export default function Profile() {
     checkAlarm();
   };
 
+  const switchTheme = async (t: ThemeName) => {
+    onThemeChange(t);
+    await saveTheme(t);
+  };
+
   return (
     <div className="profile-page">
       <div className="profile-header">
@@ -81,7 +92,19 @@ export default function Profile() {
         <div className="profile-section-title">🙋 个人中心</div>
         <div className="profile-card">
           <div className="profile-placeholder-item">👤 头像与昵称<span className="soon">敬请期待</span></div>
-          <div className="profile-placeholder-item">🎨 主题个性化<span className="soon">敬请期待</span></div>
+          <div className="profile-theme-row">
+            <span>🎨 界面主题</span>
+            <div className="profile-theme-options">
+              <button
+                className={`profile-theme-opt ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => switchTheme('light')}
+              >🌸 粉嫩</button>
+              <button
+                className={`profile-theme-opt dark ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => switchTheme('dark')}
+              >🖤 酷黑</button>
+            </div>
+          </div>
           <div className="profile-placeholder-item">☁️ 数据同步与备份<span className="soon">敬请期待</span></div>
           <div className="profile-placeholder-item">📱 版本 {APP_VERSION}</div>
         </div>

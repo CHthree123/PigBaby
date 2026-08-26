@@ -97,7 +97,7 @@ export default function DailyRecords({ records, onEdit }: Props) {
                 key={tag}
                 className="tag-bar-item"
                 onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                style={{ cursor: 'pointer', background: selectedTag === tag ? '#fff0f4' : 'transparent', borderRadius: 10, padding: '8px 8px' }}
+                style={{ cursor: 'pointer', background: selectedTag === tag ? 'var(--tag-selected)' : 'transparent', borderRadius: 10, padding: '8px 8px' }}
               >
                 <span className="tag-bar-label" style={{ color: tagColors[tag] || '#666' }}>{tag}</span>
                 <div className="tag-bar-track">

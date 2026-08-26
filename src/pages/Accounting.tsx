@@ -55,11 +55,12 @@ export default function Accounting() {
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingRecord, setEditingRecord] = useState<Transaction | null>(null);
   const [loadedDays, setLoadedDays] = useState(1);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(3);
 
-  // Reset loadedDays on view switch
+  // Reset pagination on view switch
   useEffect(() => {
     setLoadedDays(1);
+    setVisibleCount(3);
   }, [viewKey]);
 
   // Handle pig button trigger — watch for URL param changes
@@ -121,18 +122,36 @@ export default function Accounting() {
     return groups;
   }, [monthRecords, visibleDates]);
 
-  // IntersectionObserver for load-more
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        setLoadedDays((prev) => Math.min(prev + 1, 31));
+  // Overview shows the 3 most recent records first; "显示更多" reveals more
+  const slicedGroups = useMemo(() => {
+    const out: { date: string; records: Transaction[] }[] = [];
+    let remaining = visibleCount;
+    for (const g of recordGroups) {
+      if (remaining <= 0) break;
+      if (g.records.length <= remaining) {
+        out.push(g);
+        remaining -= g.records.length;
+      } else {
+        out.push({ date: g.date, records: g.records.slice(0, remaining) });
+        remaining = 0;
       }
-    }, { rootMargin: '80px' });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [recordGroups]);
+    }
+    return out;
+  }, [recordGroups, visibleCount]);
+
+  const totalLoadedRecords = useMemo(
+    () => recordGroups.reduce((s, g) => s + g.records.length, 0),
+    [recordGroups]
+  );
+
+  const showMore = () => {
+    setVisibleCount((v) => v + 5);
+    if (visibleCount + 5 >= totalLoadedRecords && loadedDays < 31) {
+      setLoadedDays((d) => Math.min(d + 1, 31));
+    }
+  };
+
+  const hasMore = visibleCount < totalLoadedRecords || loadedDays < 31;
 
   // Auto-expand to yesterday if today has no records
   const todayHasRecords = useMemo(() =>
@@ -386,7 +405,7 @@ export default function Accounting() {
           <EmptyState />
         ) : (
           <div className="ac-records-list">
-            {recordGroups.map((group) => (
+            {slicedGroups.map((group) => (
               <div key={group.date}>
                 <div className="records-date-header">
                   {group.date === today ? '今天' : group.date}
@@ -419,8 +438,10 @@ export default function Accounting() {
                 })}
               </div>
             ))}
-            <div ref={sentinelRef} style={{ height: 1 }} />
           </div>
+        )}
+        {recordGroups.length > 0 && hasMore && (
+          <button className="ac-more-btn" onClick={showMore}>显示更多</button>
         )}
       </div>
         </div>

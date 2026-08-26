@@ -172,7 +172,7 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
               ))}
               <button
                 className="tag-chip"
-                style={{ background: showCustomInput ? '#f0f0f0' : 'transparent' }}
+                style={{ background: showCustomInput ? 'var(--bg)' : 'transparent' }}
                 onClick={() => setShowCustomInput(!showCustomInput)}
               >
                 + 自定义
