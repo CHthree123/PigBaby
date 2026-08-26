@@ -126,9 +126,9 @@ export default function DailyRecords({ records, onEdit }: Props) {
         <div className="ac-records-list">
           {visibleRecords.map((r) => (
             <div key={r.id} className="ac-record-item" onClick={() => onEdit?.(r)}>
-              <div className={`ac-record-icon ${r.type}`}>
-                {r.type === 'income' ? '💰' : '💸'}
-              </div>
+              {r.type === 'income' && (
+                <div className="ac-record-icon income" style={{ color: 'var(--success)' }}>💰</div>
+              )}
               <div className="ac-record-info">
                 <div className="ac-record-note">{r.note || (r.type === 'income' ? '收入' : '支出')}</div>
                 <div className="ac-record-date">{formatDate(r.date)}</div>

@@ -18,5 +18,7 @@
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <!-- 全屏：隐藏状态栏，让应用铺满整个屏幕 -->
+        <item name="android:windowFullscreen">true</item>
     </style>
 </resources>

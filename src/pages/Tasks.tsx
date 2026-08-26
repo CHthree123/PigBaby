@@ -47,7 +47,7 @@ interface UndoState {
   content: string;
 }
 
-type SubTab = 'tasks' | 'checkin' | 'tips' | 'projects';
+type SubTab = 'tasks' | 'calendar' | 'checkin' | 'tips' | 'projects';
 
 export default function Tasks() {
   const today = todayStr();
@@ -74,6 +74,24 @@ export default function Tasks() {
   const [dateNotes, setDateNotes] = useState<DateNote[]>([]);
   const [noteInput, setNoteInput] = useState('');
   const [editingNoteDate, setEditingNoteDate] = useState<string | null>(null);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // 7-day strip around the current week (Mon-Sun), shiftable with the arrows
+  const weekDays = useMemo(() => {
+    const base = new Date();
+    base.setDate(base.getDate() - ((base.getDay() + 6) % 7) + weekOffset * 7);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return { dateStr: ds, day: d.getDate(), isToday: ds === today };
+    });
+  }, [weekOffset, today]);
+
+  const weekLabel = useMemo(() => {
+    const [y, m, d] = weekDays[0].dateStr.split('-');
+    return `${y}年${parseInt(m)}月${parseInt(d)}日 起`;
+  }, [weekDays]);
 
   const [undo, setUndo] = useState<UndoState | null>(null);
   const [undoVisible, setUndoVisible] = useState(false);
@@ -331,11 +349,116 @@ export default function Tasks() {
   };
 
   // ---- Sub-tab views ----
+  if (subTab === 'calendar') {
+    return (
+      <div className="tasks-page">
+        <div className="ac-subnav">
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
+          <button className="ac-subnav-btn active" onClick={() => setSubTab('calendar')}>📅 日历</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
+        </div>
+        <div key={`calendar-${subTabKey}`} className="view-slide-in">
+          {/* Full month calendar */}
+          <div className="mini-calendar">
+            <div className="mini-cal-header">
+              <button className="mini-cal-nav" onClick={prevCalMonth}>‹</button>
+              <span className="mini-cal-title">{calYear}年{calMonth}月</span>
+              <button className="mini-cal-nav" onClick={nextCalMonth}>›</button>
+            </div>
+            <div className="mini-cal-weekdays">
+              {WEEKDAYS.map((w) => <div key={w}>{w}</div>)}
+            </div>
+            <div className="mini-cal-grid">
+              {calendarDays.map(({ day, month, dateStr }) => {
+                const isHoliday = holidayDates.has(dateStr);
+                const holiday = getHoliday(dateStr);
+                const hasTask = taskDates.has(dateStr);
+                const hasNote = noteDates.has(dateStr);
+                return (
+                  <div
+                    key={dateStr}
+                    className={`mini-cal-day ${month !== 'current' ? 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr === selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : ''} ${hasNote ? 'annotated' : ''}`}
+                    onClick={() => {
+                      if (month === 'current') setSelectedDate(dateStr);
+                    }}
+                  >
+                    {day}
+                    <span className="mini-cal-indicators">
+                      {isHoliday && <span className="mini-cal-holiday" title={holiday?.name}>{holiday?.emoji}</span>}
+                      {hasTask && !isHoliday && <span className="mini-cal-dot" />}
+                      {hasNote && <span className="mini-cal-note-dot" title="有备注" />}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Date note */}
+          <div className="date-note-area">
+            {selectedNote && editingNoteDate !== selectedDate ? (
+              <div className="date-note-display">
+                <span className="date-note-icon">📝</span>
+                <span className="date-note-text">{selectedNote.note}</span>
+                <button className="date-note-edit-btn" onClick={() => { setNoteInput(selectedNote.note); setEditingNoteDate(selectedDate); }}>编辑</button>
+                <button className="date-note-del-btn" onClick={handleDeleteNote}>✕</button>
+              </div>
+            ) : editingNoteDate === selectedDate ? (
+              <div className="date-note-edit">
+                <input
+                  className="date-note-input"
+                  type="text"
+                  placeholder="输入日期备注..."
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNote(); if (e.key === 'Escape') { setEditingNoteDate(null); setNoteInput(''); } }}
+                  autoFocus
+                />
+                <button className="date-note-save-btn" onClick={handleSaveNote}>保存</button>
+                <button className="date-note-cancel-btn" onClick={() => { setEditingNoteDate(null); setNoteInput(''); }}>取消</button>
+              </div>
+            ) : (
+              <button className="date-note-add-btn" onClick={() => { setNoteInput(''); setEditingNoteDate(selectedDate); }}>
+                + 添加备注
+              </button>
+            )}
+          </div>
+
+          {/* Tasks of the selected day */}
+          <div className="calendar-day-title">
+            📅 {selectedDate === today ? '今天' : selectedDate} 的任务
+          </div>
+          {dateTasks.length === 0 ? (
+            <EmptyState emoji="📋" title="这天没有任务~" />
+          ) : (
+            <div className="task-list">
+              {dateTasks.map((task) => (
+                <div key={task.id} className="task-item">
+                  <div
+                    className={`task-checkbox ${task.completed ? 'checked' : ''}`}
+                    onClick={() => handleToggleComplete(task.id)}
+                  >{task.completed ? '✓' : ''}</div>
+                  <div className={`task-content ${task.completed ? 'done' : ''}`} onClick={() => setEditingTask(task)}>
+                    {task.content}
+                    <ReminderBadge reminder={task.reminder} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (subTab === 'checkin') {
     return (
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>📅 日历</button>
           <button className="ac-subnav-btn active" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
@@ -350,6 +473,7 @@ export default function Tasks() {
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>📅 日历</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
           <button className="ac-subnav-btn active" onClick={() => setSubTab('tips')}>💡 Tips</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
@@ -364,6 +488,7 @@ export default function Tasks() {
       <div className="tasks-page">
         <div className="ac-subnav">
           <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>📅 日历</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
           <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
           <button className="ac-subnav-btn active" onClick={() => setSubTab('projects')}>🏗 工程</button>
@@ -384,69 +509,41 @@ export default function Tasks() {
       </div>
       <div key={`tasks-${subTabKey}`} className="view-slide-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-      {/* Mini Calendar */}
-      <div className="mini-calendar">
-        <div className="mini-cal-header">
-          <button className="mini-cal-nav" onClick={prevCalMonth}>‹</button>
-          <span className="mini-cal-title">{calYear}年{calMonth}月</span>
-          <button className="mini-cal-nav" onClick={nextCalMonth}>›</button>
+      {/* Week strip: quick date switching (full calendar lives in 日历) */}
+      <div className="week-strip">
+        <div className="week-strip-header">
+          <span className="week-strip-label">📅 {weekLabel}</span>
+          <button
+            className="week-strip-today"
+            onClick={() => { setWeekOffset(0); setSelectedDate(today); }}
+          >今天</button>
         </div>
-        <div className="mini-cal-weekdays">
-          {WEEKDAYS.map((w) => <div key={w}>{w}</div>)}
-        </div>
-        <div className="mini-cal-grid">
-          {calendarDays.map(({ day, month, dateStr }) => {
-            const isHoliday = holidayDates.has(dateStr);
-            const holiday = getHoliday(dateStr);
-            const hasTask = taskDates.has(dateStr);
-            const hasNote = noteDates.has(dateStr);
-            return (
-            <div
-              key={dateStr}
-              className={`mini-cal-day ${month !== 'current' ? 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr === selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : ''} ${hasNote ? 'annotated' : ''}`}
-              onClick={() => {
-                if (month === 'current') setSelectedDate(dateStr);
-              }}
-            >
-              {day}
-              <span className="mini-cal-indicators">
-                {isHoliday && <span className="mini-cal-holiday" title={holiday?.name}>{holiday?.emoji}</span>}
-                {hasTask && !isHoliday && <span className="mini-cal-dot" />}
-                {hasNote && <span className="mini-cal-note-dot" title="有备注" />}
-              </span>
-            </div>
-          )})}
-        </div>
-      </div>
-
-      {/* Date Note */}
-      <div className="date-note-area">
-        {selectedNote && editingNoteDate !== selectedDate ? (
-          <div className="date-note-display">
-            <span className="date-note-icon">📝</span>
-            <span className="date-note-text">{selectedNote.note}</span>
-            <button className="date-note-edit-btn" onClick={() => { setNoteInput(selectedNote.note); setEditingNoteDate(selectedDate); }}>编辑</button>
-            <button className="date-note-del-btn" onClick={handleDeleteNote}>✕</button>
+        <div className="week-strip-row">
+          <button className="week-strip-nav" onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
+          <div className="week-strip-days">
+            {weekDays.map(({ dateStr, day, isToday }) => {
+              const holiday = getHoliday(dateStr);
+              const hasTask = taskDates.has(dateStr);
+              const hasNote = noteDates.has(dateStr);
+              return (
+                <div
+                  key={dateStr}
+                  className={`week-strip-day ${dateStr === selectedDate ? 'selected' : ''} ${isToday ? 'today' : ''}`}
+                  onClick={() => setSelectedDate(dateStr)}
+                >
+                  <span className="week-strip-weekday">周{['日', '一', '二', '三', '四', '五', '六'][new Date(dateStr).getDay()]}</span>
+                  <span className="week-strip-num">{day}</span>
+                  <span className="week-strip-mark">
+                    {holiday && <span className="mini-cal-holiday">{holiday.emoji}</span>}
+                    {hasTask && !holiday && <span className="mini-cal-dot" />}
+                    {hasNote && <span className="mini-cal-note-dot" title="有备注" />}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        ) : editingNoteDate === selectedDate ? (
-          <div className="date-note-edit">
-            <input
-              className="date-note-input"
-              type="text"
-              placeholder="输入日期备注..."
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNote(); if (e.key === 'Escape') { setEditingNoteDate(null); setNoteInput(''); } }}
-              autoFocus
-            />
-            <button className="date-note-save-btn" onClick={handleSaveNote}>保存</button>
-            <button className="date-note-cancel-btn" onClick={() => { setEditingNoteDate(null); setNoteInput(''); }}>取消</button>
-          </div>
-        ) : (
-          <button className="date-note-add-btn" onClick={() => { setNoteInput(''); setEditingNoteDate(selectedDate); }}>
-            + 添加备注
-          </button>
-        )}
+          <button className="week-strip-nav" onClick={() => setWeekOffset((w) => w + 1)}>›</button>
+        </div>
       </div>
 
       {/* Task List */}

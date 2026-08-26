@@ -182,7 +182,6 @@ export default function TagStats({ records, currentMonth, onMonthChange, onEdit 
               <div className="ac-records-list">
                 {tagRecords.map((r) => (
                   <div key={r.id} className="ac-record-item" onClick={() => onEdit?.(r)}>
-                    <div className="ac-record-icon expense">💸</div>
                     <div className="ac-record-info">
                       <div className="ac-record-note">{r.note || '支出'}</div>
                       <div className="ac-record-date">{formatDate(r.date)}</div>

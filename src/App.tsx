@@ -69,7 +69,6 @@ function App() {
 
   return (
     <div className="app-shell">
-      <button className="top-right-btn" onClick={() => navigate('/profile')}>👤 个人</button>
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Accounting />} />
@@ -104,6 +103,15 @@ function App() {
         >
           <span className="nav-icon">📋</span>
           <span className="nav-label">任务</span>
+        </button>
+
+        {/* 个人 */}
+        <button
+          className={`nav-item ${isActive('/profile') ? 'active' : ''}`}
+          onClick={() => navigate('/profile')}
+        >
+          <span className="nav-icon">👤</span>
+          <span className="nav-label">个人</span>
         </button>
       </nav>
     </div>

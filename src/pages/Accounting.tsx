@@ -388,19 +388,16 @@ export default function Accounting() {
                 <div className="records-date-header">
                   {group.date === today ? '今天' : group.date}
                 </div>
-                {group.records.map((r) => {
-                  const iconBg = r.type === 'income'
-                    ? 'var(--success-light)'
-                    : (tagColors[r.tag] || '#E0E0E0');
-                  const iconEmoji = r.type === 'income' ? '💰' : '💸';
-                  return (
+                {group.records.map((r) => (
                   <div key={r.id} className="ac-record-item" onClick={() => setEditingRecord(r)}>
-                    <div
-                      className={`ac-record-icon ${r.type}`}
-                      style={{ background: iconBg, color: r.type === 'income' ? 'var(--success)' : '#fff' }}
-                    >
-                      {iconEmoji}
-                    </div>
+                    {r.type === 'income' && (
+                      <div
+                        className="ac-record-icon income"
+                        style={{ background: 'var(--success-light)', color: 'var(--success)' }}
+                      >
+                        💰
+                      </div>
+                    )}
                     <div className="ac-record-info">
                       <div className="ac-record-note">{r.note || (r.type === 'income' ? '收入' : '支出')}</div>
                       <div className="ac-record-date">{formatDate(r.date)}</div>
@@ -412,8 +409,7 @@ export default function Accounting() {
                       {r.type === 'income' ? '+' : '−'}¥{r.amount.toFixed(2)}
                     </div>
                   </div>
-                  );
-                })}
+                ))}
               </div>
             ))}
           </div>

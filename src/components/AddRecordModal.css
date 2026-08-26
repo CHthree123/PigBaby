@@ -215,3 +215,29 @@
 .arm-note-memory-del:active {
   color: var(--danger);
 }
+
+/* Custom tag delete badge */
+.tag-chip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.tag-chip-del {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.tag-chip-del:active {
+  transform: scale(0.85);
+}

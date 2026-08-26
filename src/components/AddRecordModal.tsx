@@ -113,6 +113,14 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
     setTagNotes(await loadTagNotes());
   };
 
+  const handleDeleteCustomTag = async (t: string) => {
+    if (!window.confirm(`删除自定义标签「${t}」？已记的账不受影响。`)) return;
+    const custom = await loadCustomTags();
+    await saveCustomTags(custom.filter((c) => c !== t));
+    setAllTags(allTags.filter((x) => x !== t));
+    if (tag === t) setTag('其他');
+  };
+
   const handleDelete = () => {
     if (!editRecord || !onDelete) return;
     onDelete(editRecord.id);
@@ -161,14 +169,18 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
             <label className="arm-label">标签</label>
             <div className="tag-selector">
               {allTags.map((t) => (
-                <button
-                  key={t}
-                  className={`tag-chip ${tag === t ? 'selected' : ''}`}
-                  style={tag === t ? { background: tagColors[t] || '#FF9BB3' } : {}}
-                  onClick={() => setTag(t)}
-                >
-                  {t}
-                </button>
+                <span key={t} className="tag-chip-wrap">
+                  <button
+                    className={`tag-chip ${tag === t ? 'selected' : ''}`}
+                    style={tag === t ? { background: tagColors[t] || '#FF9BB3' } : {}}
+                    onClick={() => setTag(t)}
+                  >
+                    {t}
+                  </button>
+                  {!DEFAULT_TAGS.includes(t) && (
+                    <b className="tag-chip-del" onClick={() => handleDeleteCustomTag(t)}>✕</b>
+                  )}
+                </span>
               ))}
               <button
                 className="tag-chip"
