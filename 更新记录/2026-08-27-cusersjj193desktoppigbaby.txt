@@ -82,3 +82,17 @@ PigBaby 开发记录 · 2026-08-27（深色会话摘录）
   不精确闹钟（熄屏/后台时延迟，进入 App 才触发——用户看到的
   现象）；Android 13+ 由 USE_EXACT_ALARM 自动授予。若权限已开
   仍收不到，多为国产 ROM 省电策略/锁屏通知设置问题。
+
+【追加修复】v1.3.1 提醒无声音/震动 + 熄屏显示：
+- 根因：上一版用 JS createChannel 建的 pigbaby_reminders 通道，
+  插件实现里 sound 默认 null（静音）、vibrate 默认 false（无震动）、
+  useLights 默认 false，且 JS 端无法引用系统默认提示音
+  （sound 字段只会拼 android.resource://pkg/raw/ 资源路径）
+- 修复：改在 MainActivity 原生创建通道
+  （IMPORTANCE_HIGH + Settings.System.DEFAULT_NOTIFICATION_URI
+  系统默认提示音 + 震动 + 锁屏 VISIBILITY_PUBLIC），JS 侧不再
+  createChannel（避免覆盖原生配置），只用 channelId 引用
+- 熄屏无消息：通知实际已送达（解锁后可见），剩余原因在
+  系统"锁屏通知"设置（国产 ROM 每 App 单独开关）或省电策略，
+  需用户侧确认；通道已设锁屏可见尽量兜底
+- 版本：1.3.0 → 1.3.1（versionCode 4）

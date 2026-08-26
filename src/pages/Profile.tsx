@@ -4,7 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import SmsAutoPanel from '../components/SmsAutoPanel';
 import './Profile.css';
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 
 export default function Profile() {
   const navigate = useNavigate();
