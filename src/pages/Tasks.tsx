@@ -17,7 +17,7 @@ function feedbackReminder(r: ReminderScheduleResult) {
   } else if (r.status === 'failed') {
     alert(`提醒设置失败：${r.message}`);
   } else if (r.status === 'inexact') {
-    alert('提醒已设置，但系统未授予"闹钟和提醒"权限，到点可能不准时。可到 设置→应用→PigBaby→闹钟和提醒 开启精确闹钟。');
+    alert('提醒已设置，但系统未授予"闹钟和提醒"权限，熄屏时可能收不到通知。已为你打开系统设置，请开启后重新设置一次提醒。');
     openExactAlarmSettings();
   }
 }

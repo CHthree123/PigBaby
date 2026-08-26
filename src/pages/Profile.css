@@ -93,3 +93,9 @@
   font-size: 11px;
   color: var(--text-muted);
 }
+
+.profile-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 10px 0;
+}

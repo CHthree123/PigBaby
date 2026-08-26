@@ -18,6 +18,23 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return req.display === 'granted';
 }
 
+// HIGH-importance channel so reminders show with sound/heads-up while the
+// screen is off (the plugin's default channel is only IMPORTANCE_DEFAULT).
+const REMINDER_CHANNEL_ID = 'pigbaby_reminders';
+
+async function ensureReminderChannel(): Promise<void> {
+  try {
+    await LocalNotifications.createChannel({
+      id: REMINDER_CHANNEL_ID,
+      name: '任务提醒',
+      description: '任务准点提醒',
+      importance: 4,
+    });
+  } catch {
+    // channel creation is not supported on every platform; fall back to default
+  }
+}
+
 function parseReminder(reminder: string | null | undefined): Date | null {
   if (!reminder) return null;
   const at = new Date(reminder);
@@ -39,14 +56,22 @@ export async function scheduleTaskReminder(task: Pick<Task, 'id' | 'content' | '
   const at = parseReminder(task.reminder);
   if (!at || at.getTime() <= Date.now()) return { status: 'scheduled' };
   try {
+    await ensureReminderChannel();
+    const notifId = notifIdForTask(task.id);
     const res = await LocalNotifications.schedule({
       notifications: [{
-        id: notifIdForTask(task.id),
+        id: notifId,
         title: '⏰ 任务提醒',
         body: task.content,
+        channelId: REMINDER_CHANNEL_ID,
         schedule: { at },
       }],
     });
+    // Make sure the OS actually accepted the alarm; otherwise the reminder
+    // would silently never fire (only "arrive when entering the app")
+    if (!res.notifications.some((n) => n.id === notifId)) {
+      return { status: 'failed', message: '系统未接受本次提醒调度，请重试' };
+    }
     if (res.warning) return { status: 'inexact' };
     return { status: 'scheduled' };
   } catch (e) {
