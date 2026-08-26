@@ -90,6 +90,14 @@ export default function Tasks() {
     return tasks.filter((t) => !t.completed && t.date < today).sort((a, b) => a.order - b.order || a.date.localeCompare(b.date));
   }, [tasks, today]);
 
+  // All unfinished tasks shown on today's view in ONE sequence:
+  // rolled past tasks first (each keeps its original date badge), then today's.
+  // Array order IS display order, so ▲▼ moves apply to the whole merged list.
+  const todayViewTasks = useMemo(() => {
+    if (selectedDate !== today) return incompleteTasks;
+    return [...pastIncompleteTasks, ...incompleteTasks];
+  }, [selectedDate, today, pastIncompleteTasks, incompleteTasks]);
+
   const futureTaskDates = useMemo(() => {
     return [...new Set(tasks.filter((t) => !t.completed && t.date > today).map((t) => t.date))].sort();
   }, [tasks, today]);
@@ -292,12 +300,9 @@ export default function Tasks() {
     setTasks(updatedTasks);
   };
 
+  // Moves apply across the whole merged list (rolled + today) on today's view
   const handleMoveTask = (taskId: string, direction: 'up' | 'down') => {
-    void reorderList([...incompleteTasks], taskId, direction);
-  };
-
-  const handleMoveRolledTask = (taskId: string, direction: 'up' | 'down') => {
-    void reorderList([...pastIncompleteTasks], taskId, direction);
+    void reorderList([...todayViewTasks], taskId, direction);
   };
 
   const formatCompletedTime = (iso: string | null) => {
@@ -468,50 +473,28 @@ export default function Tasks() {
           </label>
         </div>
 
-        {incompleteTasks.length === 0 && completedTasks.length === 0 && !(selectedDate === today && pastIncompleteTasks.length > 0) ? (
+        {todayViewTasks.length === 0 && completedTasks.length === 0 ? (
           <EmptyState emoji="📋" title="📋 这天没有任务~" />
         ) : (
           <>
-            {/* Past incomplete rolled to today */}
-            {selectedDate === today && pastIncompleteTasks.length > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <div className="task-section-title" style={{ color: '#E8708A' }}>📌 过去未完成 · 已顺延</div>
-                <div className="task-list">
-                  {pastIncompleteTasks.map((task, idx) => (
-                    <div key={task.id} className="task-item rolled">
-                      <div className="task-move-btns">
-                        <button className="task-move-btn" disabled={idx === 0} onClick={() => handleMoveRolledTask(task.id, 'up')}>▲</button>
-                        <button className="task-move-btn" disabled={idx === pastIncompleteTasks.length - 1} onClick={() => handleMoveRolledTask(task.id, 'down')}>▼</button>
-                      </div>
-                      <div
-                        className="task-checkbox"
-                        onClick={() => handleToggleComplete(task.id)}
-                      />
-                      <div className="task-content" onClick={() => setEditingTask(task)}>
-                        {task.content}
-                        <span className="task-rolled-date">{task.date.slice(5)}</span>
-                        <ReminderBadge reminder={task.reminder} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Incomplete for selected date */}
-            {incompleteTasks.length > 0 && (
+            {/* One unified sequence: rolled past tasks (with date badge) + today's tasks */}
+            {todayViewTasks.length > 0 && (
               <div className="task-list">
-                {incompleteTasks.map((task, idx) => (
+                {todayViewTasks.map((task, idx) => (
                   <div key={task.id} className="task-item">
                     <div className="task-move-btns">
                       <button className="task-move-btn" disabled={idx === 0} onClick={() => handleMoveTask(task.id, 'up')}>▲</button>
-                      <button className="task-move-btn" disabled={idx === incompleteTasks.length - 1} onClick={() => handleMoveTask(task.id, 'down')}>▼</button>
+                      <button className="task-move-btn" disabled={idx === todayViewTasks.length - 1} onClick={() => handleMoveTask(task.id, 'down')}>▼</button>
                     </div>
                     <div
                       className="task-checkbox"
                       onClick={() => handleToggleComplete(task.id)}
                     />
-                    <div className="task-content" onClick={() => setEditingTask(task)}>{task.content}<ReminderBadge reminder={task.reminder} /></div>
+                    <div className="task-content" onClick={() => setEditingTask(task)}>
+                      {task.content}
+                      {task.date < today && <span className="task-rolled-date">{task.date.slice(5)}</span>}
+                      <ReminderBadge reminder={task.reminder} />
+                    </div>
                   </div>
                 ))}
               </div>
