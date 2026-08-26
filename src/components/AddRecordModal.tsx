@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { Transaction } from '../storage';
-import { DEFAULT_TAGS, loadCustomTags, saveCustomTags, loadTagColors, saveTagColors, getRandomTagColor } from '../storage';
+import { DEFAULT_TAGS, loadCustomTags, saveCustomTags, loadTagColors, saveTagColors, getRandomTagColor, loadTagNotes, incrementTagNote, deleteTagNote, type TagNotes } from '../storage';
 import './AddRecordModal.css';
 
 interface Props {
@@ -27,6 +27,7 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [showDelConfirm, setShowDelConfirm] = useState(false);
+  const [tagNotes, setTagNotes] = useState<TagNotes>({});
   const openTime = useRef(Date.now());
 
   const handleOverlayClick = () => {
@@ -39,11 +40,23 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
     const load = async () => {
       const custom = await loadCustomTags();
       const colors = await loadTagColors();
+      const notes = await loadTagNotes();
       setAllTags([...DEFAULT_TAGS, ...custom]);
       setTagColors(colors);
+      setTagNotes(notes);
     };
     load();
   }, []);
+
+  // Notes remembered under the currently selected tag, most used first
+  const rememberedNotes = useMemo(() => {
+    if (type !== 'expense' || !tag) return [];
+    const notes = tagNotes[tag];
+    if (!notes) return [];
+    return Object.entries(notes)
+      .map(([note, count]) => ({ note, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [type, tag, tagNotes]);
 
   useEffect(() => {
     if (editRecord) {
@@ -76,7 +89,7 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
     setCustomTag('');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt <= 0) return;
 
@@ -89,7 +102,15 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
       month: date.slice(0, 7),
       tag: type === 'expense' ? tag : '',
     };
+    if (type === 'expense' && tag && note.trim()) {
+      await incrementTagNote(tag, note.trim());
+    }
     onSave(record);
+  };
+
+  const handleDeleteNote = async (note: string) => {
+    await deleteTagNote(tag, note);
+    setTagNotes(await loadTagNotes());
   };
 
   const handleDelete = () => {
@@ -168,6 +189,23 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
                 onBlur={handleAddCustomTag}
                 autoFocus
               />
+            )}
+            {rememberedNotes.length > 0 && (
+              <div className="arm-note-memory">
+                <div className="arm-note-memory-title">💭 常用备注（点击填入）</div>
+                <div className="arm-note-memory-list">
+                  {rememberedNotes.map(({ note: n, count }) => (
+                    <span key={n} className="arm-note-memory-chip" onClick={() => setNote(n)}>
+                      {n}
+                      <i className="arm-note-memory-count">{count}次</i>
+                      <b
+                        className="arm-note-memory-del"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteNote(n); }}
+                      >✕</b>
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}

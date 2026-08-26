@@ -1,25 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Preferences } from '@capacitor/preferences';
-import type { Transaction } from '../storage';
+import { loadData, saveData } from '../storage';
 import { SmsReader, buildTransactions, isNative } from '../smsAuto';
-
-interface Props {
-  records: Transaction[];
-  onImported: (transactions: Transaction[], added: number) => Promise<void>;
-}
 
 const ENABLE_KEY = 'pigbaby_sms_auto';
 
-export default function SmsAutoPanel({ records, onImported }: Props) {
+// Settings UI for SMS auto-accounting, shown in the Profile page. Reads and
+// writes shared Preferences directly (the polling engine lives separately in
+// SmsAutoSync, which stays mounted on the accounting page).
+export default function SmsAutoPanel() {
   const [enabled, setEnabled] = useState(false);
   const [permission, setPermission] = useState<boolean | null>(null);
   const [statusText, setStatusText] = useState('');
-
-  const recordsRef = useRef(records);
-  useEffect(() => { recordsRef.current = records; }, [records]);
-
-  const onImportedRef = useRef(onImported);
-  useEffect(() => { onImportedRef.current = onImported; }, [onImported]);
 
   useEffect(() => {
     if (!isNative) return;
@@ -58,43 +50,23 @@ export default function SmsAutoPanel({ records, onImported }: Props) {
   const importRecent = async () => {
     try {
       const { records: recent } = await SmsReader.queryRecent({ limit: 20 });
-      const { transactions, added } = buildTransactions(recent, recordsRef.current);
+      const data = await loadData();
+      const { transactions, added } = buildTransactions(recent, data.records);
       if (added === 0) {
         setStatusText('最近短信中没有新的扣款记录');
         return;
       }
-      await onImportedRef.current(transactions, added);
+      await saveData({ ...data, records: [...data.records, ...transactions] });
       setStatusText(`📥 已导入最近账单 +${added} 条`);
-    } catch {
-      setStatusText('导入失败（需要短信权限）');
+    } catch (e) {
+      const msg = (e as { message?: string })?.message || String(e);
+      setStatusText(`导入失败（需要短信权限）：${msg}`);
     }
   };
 
-  // While enabled, pull records captured by the native receiver (works app closed too)
-  useEffect(() => {
-    if (!enabled || !isNative) return;
-    let stopped = false;
-    const pull = async () => {
-      if (stopped) return;
-      try {
-        const { records: pending } = await SmsReader.syncPending();
-        if (pending.length > 0) {
-          const { transactions, added } = buildTransactions(pending, recordsRef.current);
-          if (added > 0) {
-            await onImportedRef.current(transactions, added);
-            setStatusText(`📥 自动记账 +${added} 条`);
-          }
-        }
-      } catch {
-        // transient native error: keep polling
-      }
-    };
-    pull();
-    const timer = setInterval(pull, 10000);
-    return () => { stopped = true; clearInterval(timer); };
-  }, [enabled]);
-
-  if (!isNative) return null;
+  if (!isNative) {
+    return <div className="sms-auto-status">短信自动记账仅安卓端可用（当前为网页预览）。</div>;
+  }
 
   return (
     <div className="sms-auto-panel">
@@ -114,6 +86,7 @@ export default function SmsAutoPanel({ records, onImported }: Props) {
         </button>
       </div>
       {statusText && <div className="sms-auto-status">{statusText}</div>}
+      <div className="sms-auto-status">开启后，微信/支付宝/银行的扣款短信会自动记入账单（需保持 App 未被强行停止）。</div>
     </div>
   );
 }

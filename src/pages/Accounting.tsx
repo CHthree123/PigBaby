@@ -7,7 +7,7 @@ import TagStats from '../components/TagStats';
 import PiggyBank from '../components/PiggyBank';
 import EmptyState from '../components/EmptyState';
 import AnimatedNumber from '../components/AnimatedNumber';
-import SmsAutoPanel from '../components/SmsAutoPanel';
+import SmsAutoSync from '../components/SmsAutoSync';
 import './Accounting.css';
 
 function todayStr(): string {
@@ -292,7 +292,7 @@ export default function Accounting() {
         <button className={`ac-subnav-btn ${view === 'piggybank' ? 'active' : ''}`} onClick={() => switchView('piggybank')}>🐷 存钱罐</button>
       </div>
 
-      <SmsAutoPanel
+      <SmsAutoSync
         records={data.records}
         onImported={handleSmsImported}
       />

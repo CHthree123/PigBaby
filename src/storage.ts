@@ -147,6 +147,7 @@ const STORAGE_KEY = 'pigbaby_data';
 const DATE_NOTES_KEY = 'pigbaby_date_notes';
 const CUSTOM_TAGS_KEY = 'pigbaby_custom_tags';
 const TAG_COLORS_KEY = 'pigbaby_tag_colors';
+const TAG_NOTES_KEY = 'pigbaby_tag_notes';
 const SAVINGS_KEY = 'pigbaby_savings_goals';
 const TASKS_KEY = 'pigbaby_tasks';
 const CHECKIN_KEY = 'pigbaby_checkin';
@@ -197,6 +198,36 @@ export async function loadTagColors(): Promise<Record<string, string>> {
 
 export async function saveTagColors(colors: Record<string, string>): Promise<void> {
   await Preferences.set({ key: TAG_COLORS_KEY, value: JSON.stringify(colors) });
+}
+
+// ========== Tag Notes (remembered note per tag, keyed by usage count) ==========
+
+export type TagNotes = Record<string, Record<string, number>>; // tag -> note -> count
+
+export async function loadTagNotes(): Promise<TagNotes> {
+  const { value } = await Preferences.get({ key: TAG_NOTES_KEY });
+  if (!value) return {};
+  return JSON.parse(value) as TagNotes;
+}
+
+export async function saveTagNotes(tn: TagNotes): Promise<void> {
+  await Preferences.set({ key: TAG_NOTES_KEY, value: JSON.stringify(tn) });
+}
+
+export async function incrementTagNote(tag: string, note: string): Promise<void> {
+  const tn = await loadTagNotes();
+  tn[tag] = tn[tag] || {};
+  tn[tag][note] = (tn[tag][note] || 0) + 1;
+  await saveTagNotes(tn);
+}
+
+export async function deleteTagNote(tag: string, note: string): Promise<void> {
+  const tn = await loadTagNotes();
+  if (tn[tag]) {
+    delete tn[tag][note];
+    if (Object.keys(tn[tag]).length === 0) delete tn[tag];
+    await saveTagNotes(tn);
+  }
 }
 
 const TAG_COLOR_POOL = [
@@ -288,10 +319,11 @@ export async function saveDateNotes(data: DateNotesData): Promise<void> {
 // ========== Export All ==========
 
 export async function exportAllData(): Promise<void> {
-  const [data, customTags, tagColors, savings, tasks, checkin, tips, projects, dateNotes] = await Promise.all([
+  const [data, customTags, tagColors, tagNotes, savings, tasks, checkin, tips, projects, dateNotes] = await Promise.all([
     loadData(),
     loadCustomTags(),
     loadTagColors(),
+    loadTagNotes(),
     loadSavingsGoals(),
     loadTasks(),
     loadCheckIn(),
@@ -303,6 +335,7 @@ export async function exportAllData(): Promise<void> {
     pigbaby_data: data,
     custom_tags: customTags,
     tag_colors: tagColors,
+    tag_notes: tagNotes,
     savings_goals: savings,
     tasks: tasks,
     checkin: checkin,
@@ -334,6 +367,9 @@ export async function importAllData(json: Record<string, unknown>): Promise<void
   }
   if (json.tag_colors) {
     await saveTagColors(json.tag_colors as Record<string, string>);
+  }
+  if (json.tag_notes) {
+    await saveTagNotes(json.tag_notes as TagNotes);
   }
   if (json.savings_goals) {
     await saveSavingsGoals(json.savings_goals as SavingsData);

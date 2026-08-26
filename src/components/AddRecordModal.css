@@ -161,3 +161,57 @@
 .arm-btn-del-confirm:active {
   transform: scale(0.95);
 }
+
+/* Remembered notes per tag */
+.arm-note-memory {
+  margin-top: 10px;
+}
+
+.arm-note-memory-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.arm-note-memory-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.arm-note-memory-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.arm-note-memory-chip:active {
+  background: var(--primary-light);
+}
+
+.arm-note-memory-count {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.arm-note-memory-del {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.arm-note-memory-del:active {
+  color: var(--danger);
+}

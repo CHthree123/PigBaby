@@ -12,6 +12,30 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Top-right entry to the Profile page */
+.top-right-btn {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0));
+  right: 12px;
+  z-index: 90;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.top-right-btn:active {
+  transform: scale(0.94);
+}
+
 /* Bottom Nav */
 .bottom-nav {
   display: flex;

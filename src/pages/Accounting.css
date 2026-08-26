@@ -2142,3 +2142,45 @@
   text-align: center;
   font-weight: 700;
 }
+
+/* Daily query: tag bar chart + filter bar */
+.daily-tag-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.daily-tag-chart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.daily-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0 4px;
+}
+
+.daily-filter-chip {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.daily-filter-clear {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}

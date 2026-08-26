@@ -4,6 +4,7 @@ import type { PluginListenerHandle } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import Accounting from './pages/Accounting';
 import Tasks from './pages/Tasks';
+import Profile from './pages/Profile';
 import './App.css';
 
 function App() {
@@ -58,10 +59,12 @@ function App() {
 
   return (
     <div className="app-shell">
+      <button className="top-right-btn" onClick={() => navigate('/profile')}>👤 个人</button>
       <main className="app-main">
         <Routes>
           <Route path="/" element={<Accounting />} />
           <Route path="/tasks" element={<Tasks />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
       <nav className="bottom-nav">
