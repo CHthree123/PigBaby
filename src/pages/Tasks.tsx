@@ -80,7 +80,7 @@ export default function Tasks() {
   const completedTasks = useMemo(() => dateTasks.filter((t) => t.completed), [dateTasks]);
 
   const pastIncompleteTasks = useMemo(() => {
-    return tasks.filter((t) => !t.completed && t.date < today).sort((a, b) => a.date.localeCompare(b.date));
+    return tasks.filter((t) => !t.completed && t.date < today).sort((a, b) => a.order - b.order || a.date.localeCompare(b.date));
   }, [tasks, today]);
 
   const futureTaskDates = useMemo(() => {
@@ -256,9 +256,9 @@ export default function Tasks() {
     }
   };
 
-  // Move task up/down within the same date's incomplete list
-  const handleMoveTask = async (taskId: string, direction: 'up' | 'down') => {
-    const list = [...incompleteTasks];
+  // Reorder a list of tasks by reassigning order 0..n-1; only touches `order`,
+  // never date/completed, so rolled tasks keep their overdue status
+  const reorderList = async (list: Task[], taskId: string, direction: 'up' | 'down') => {
     const idx = list.findIndex((t) => t.id === taskId);
     if (idx === -1) return;
     if (direction === 'up' && idx === 0) return;
@@ -275,6 +275,14 @@ export default function Tasks() {
 
     await saveTasks({ tasks: updatedTasks });
     setTasks(updatedTasks);
+  };
+
+  const handleMoveTask = (taskId: string, direction: 'up' | 'down') => {
+    void reorderList([...incompleteTasks], taskId, direction);
+  };
+
+  const handleMoveRolledTask = (taskId: string, direction: 'up' | 'down') => {
+    void reorderList([...pastIncompleteTasks], taskId, direction);
   };
 
   const formatCompletedTime = (iso: string | null) => {
@@ -454,9 +462,12 @@ export default function Tasks() {
               <div style={{ marginBottom: 10 }}>
                 <div className="task-section-title" style={{ color: '#E8708A' }}>📌 过去未完成 · 已顺延</div>
                 <div className="task-list">
-                  {pastIncompleteTasks.map((task) => (
+                  {pastIncompleteTasks.map((task, idx) => (
                     <div key={task.id} className="task-item rolled">
-                      <div style={{ width: 32, flexShrink: 0 }} />
+                      <div className="task-move-btns">
+                        <button className="task-move-btn" disabled={idx === 0} onClick={() => handleMoveRolledTask(task.id, 'up')}>▲</button>
+                        <button className="task-move-btn" disabled={idx === pastIncompleteTasks.length - 1} onClick={() => handleMoveRolledTask(task.id, 'down')}>▼</button>
+                      </div>
                       <div
                         className="task-checkbox"
                         onClick={() => handleToggleComplete(task.id)}
