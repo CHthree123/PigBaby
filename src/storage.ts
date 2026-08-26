@@ -52,6 +52,7 @@ export interface Task {
   content: string;
   date: string;           // YYYY-MM-DD
   tag?: 'instant' | 'longterm';  // legacy, no longer used in UI
+  reminder?: string | null;  // YYYY-MM-DDTHH:mm local time, null = no reminder
   completed: boolean;
   completedAt: string | null;
   createdAt: string;
@@ -224,7 +225,10 @@ export async function saveSavingsGoals(data: SavingsData): Promise<void> {
 export async function loadTasks(): Promise<TasksData> {
   const { value } = await Preferences.get({ key: TASKS_KEY });
   if (!value) return { tasks: [] };
-  return JSON.parse(value) as TasksData;
+  const parsed = JSON.parse(value) as TasksData;
+  // migrate tasks saved before the reminder field existed
+  parsed.tasks = parsed.tasks.map((t) => ({ ...t, reminder: t.reminder ?? null }));
+  return parsed;
 }
 
 export async function saveTasks(data: TasksData): Promise<void> {

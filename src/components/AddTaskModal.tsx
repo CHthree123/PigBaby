@@ -12,6 +12,7 @@ interface Props {
 export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, onClose }: Props) {
   const [content, setContent] = useState(editTask?.content ?? '');
   const [date, setDate] = useState(editTask?.date ?? defaultDate);
+  const [reminder, setReminder] = useState(editTask?.reminder ?? '');
   const openTime = useRef(Date.now());
   const isEdit = !!editTask;
 
@@ -19,6 +20,7 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
     if (editTask) {
       setContent(editTask.content);
       setDate(editTask.date);
+      setReminder(editTask.reminder ?? '');
     }
   }, [editTask]);
 
@@ -34,6 +36,7 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
       id: editTask?.id ?? Date.now().toString(),
       content: content.trim(),
       date,
+      reminder: reminder || null,
       completed: editTask?.completed ?? false,
       completedAt: editTask?.completedAt ?? null,
       createdAt: editTask?.createdAt ?? new Date().toISOString(),
@@ -67,6 +70,16 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
+          />
+        </div>
+
+        <div className="arm-field">
+          <label className="arm-label">⏰ 提醒时间（可选，准点通知）</label>
+          <input
+            className="arm-input"
+            type="datetime-local"
+            value={reminder}
+            onChange={(e) => setReminder(e.target.value)}
           />
         </div>
 

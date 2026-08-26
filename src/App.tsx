@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import type { PluginListenerHandle } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import Accounting from './pages/Accounting';
 import Tasks from './pages/Tasks';
 import './App.css';
@@ -20,6 +22,22 @@ function App() {
   }, []);
 
   const [pigBounce, setPigBounce] = useState(false);
+
+  // Tap on a task reminder notification -> jump to tasks page
+  useEffect(() => {
+    let removed = false;
+    let handle: PluginListenerHandle | undefined;
+    LocalNotifications.addListener('localNotificationActionPerformed', () => {
+      navigate('/tasks');
+    }).then((h) => {
+      if (removed) h.remove();
+      else handle = h;
+    });
+    return () => {
+      removed = true;
+      handle?.remove();
+    };
+  }, [navigate]);
 
   const handlePigClick = useCallback(() => {
     if (pigBounce) return;

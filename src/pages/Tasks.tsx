@@ -8,6 +8,7 @@ import Tips from '../components/Tips';
 import Projects from '../components/Project';
 import EmptyState from '../components/EmptyState';
 import { getHoliday, getHolidayDates } from '../holidays';
+import { ensureNotificationPermission, resyncReminders } from '../notifications';
 
 function todayStr(): string {
   const d = new Date();
@@ -23,6 +24,11 @@ function getFirstDayOfWeek(y: number, m: number): number {
 }
 
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function ReminderBadge({ reminder }: { reminder?: string | null }) {
+  if (!reminder) return null;
+  return <span className="task-reminder-time">⏰ {reminder.slice(11)}</span>;
+}
 
 interface UndoState {
   taskId: string;
@@ -65,6 +71,7 @@ export default function Tasks() {
   const refresh = useCallback(async () => {
     const t = await loadTasks();
     setTasks(t.tasks);
+    await resyncReminders(t.tasks);
     const n = await loadDateNotes();
     setDateNotes(n.notes);
   }, []);
@@ -162,6 +169,7 @@ export default function Tasks() {
     );
     await saveTasks({ tasks: updated });
     setTasks(updated);
+    await resyncReminders(updated);
     setUndoText('↩ 已撤销');
     setUndo(null);
     setTimeout(() => setUndoVisible(false), 1500);
@@ -183,6 +191,9 @@ export default function Tasks() {
     const maxOrder = Math.max(0, ...tasks.map((t) => t.order));
     const newTask = { ...task, order: maxOrder + 1 };
     const updated: TasksData = { tasks: [...tasks, newTask] };
+    if (newTask.reminder) {
+      await ensureNotificationPermission();
+    }
     await saveTasks(updated);
     setShowAddModal(false);
     setSelectedDate(task.date);
@@ -226,6 +237,7 @@ export default function Tasks() {
     );
     await saveTasks({ tasks: updated });
     setTasks(updated);
+    await resyncReminders(updated);
     setEditingTask(null);
   };
 
@@ -233,6 +245,7 @@ export default function Tasks() {
     const updated = tasks.filter((t) => t.id !== taskId);
     await saveTasks({ tasks: updated });
     setTasks(updated);
+    await resyncReminders(updated);
     setEditingTask(null);
   };
 
@@ -246,6 +259,7 @@ export default function Tasks() {
       );
       await saveTasks({ tasks: updated });
       setTasks(updated);
+      await resyncReminders(updated);
       showUndo(taskId, task.content);
     } else {
       const updated = tasks.map((t) =>
@@ -253,6 +267,7 @@ export default function Tasks() {
       );
       await saveTasks({ tasks: updated });
       setTasks(updated);
+      await resyncReminders(updated);
     }
   };
 
@@ -475,6 +490,7 @@ export default function Tasks() {
                       <div className="task-content" onClick={() => setEditingTask(task)}>
                         {task.content}
                         <span className="task-rolled-date">{task.date.slice(5)}</span>
+                        <ReminderBadge reminder={task.reminder} />
                       </div>
                     </div>
                   ))}
@@ -495,7 +511,7 @@ export default function Tasks() {
                       className="task-checkbox"
                       onClick={() => handleToggleComplete(task.id)}
                     />
-                    <div className="task-content" onClick={() => setEditingTask(task)}>{task.content}</div>
+                    <div className="task-content" onClick={() => setEditingTask(task)}>{task.content}<ReminderBadge reminder={task.reminder} /></div>
                   </div>
                 ))}
               </div>
@@ -513,7 +529,7 @@ export default function Tasks() {
                         className="task-checkbox checked"
                         onClick={() => handleToggleComplete(task.id)}
                       >✓</div>
-                      <div className="task-content done" onClick={() => setEditingTask(task)}>{task.content}</div>
+                      <div className="task-content done" onClick={() => setEditingTask(task)}>{task.content}<ReminderBadge reminder={task.reminder} /></div>
                       <span className="task-completed-time">{formatCompletedTime(task.completedAt)}</span>
                     </div>
                   ))}
@@ -553,7 +569,7 @@ export default function Tasks() {
                             className="task-checkbox"
                             onClick={() => handleToggleComplete(task.id)}
                           />
-                          <div className="task-content" onClick={() => setEditingTask(task)}>{task.content}</div>
+                          <div className="task-content" onClick={() => setEditingTask(task)}>{task.content}<ReminderBadge reminder={task.reminder} /></div>
                         </div>
                       ))}
                     </div>

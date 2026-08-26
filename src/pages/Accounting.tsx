@@ -7,6 +7,7 @@ import TagStats from '../components/TagStats';
 import PiggyBank from '../components/PiggyBank';
 import EmptyState from '../components/EmptyState';
 import AnimatedNumber from '../components/AnimatedNumber';
+import SmsAutoPanel from '../components/SmsAutoPanel';
 import './Accounting.css';
 
 function todayStr(): string {
@@ -250,6 +251,16 @@ export default function Accounting() {
     await refresh();
   };
 
+  const handleSmsImported = async (transactions: Transaction[], added: number) => {
+    if (added === 0) return;
+    const updated: AppData = {
+      ...data,
+      records: [...data.records, ...transactions],
+    };
+    await saveData(updated);
+    await refresh();
+  };
+
   const handleImport = async () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -280,6 +291,11 @@ export default function Accounting() {
         <button className={`ac-subnav-btn ${view === 'tags' ? 'active' : ''}`} onClick={() => switchView('tags')}>🏷️ 标签统计</button>
         <button className={`ac-subnav-btn ${view === 'piggybank' ? 'active' : ''}`} onClick={() => switchView('piggybank')}>🐷 存钱罐</button>
       </div>
+
+      <SmsAutoPanel
+        records={data.records}
+        onImported={handleSmsImported}
+      />
 
       {view === 'daily' && (
         <div key={`daily-${viewKey}`} className="view-slide-in">

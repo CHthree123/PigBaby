@@ -1131,6 +1131,71 @@
   font-weight: 400;
 }
 
+/* SMS auto bookkeeping panel */
+.sms-auto-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 16px 10px;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.sms-auto-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sms-auto-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  min-width: 120px;
+}
+
+.sms-auto-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--primary-light, #FFE3EC);
+  color: var(--primary-dark, #D94F7E);
+  cursor: pointer;
+}
+
+.sms-auto-btn.on {
+  background: var(--success-light, #E3F5E9);
+  color: var(--success, #2F9E63);
+}
+
+.sms-auto-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sms-auto-status {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Task reminder time label */
+.task-reminder-time {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  color: #7C6FF0;
+  background: #F0EDFF;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-weight: 400;
+}
+
 /* Future tasks nav */
 .future-nav {
   display: flex;
