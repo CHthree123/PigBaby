@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { type Transaction, type AppData, loadData, saveData, exportAllData, importAllData, loadTagColors, TAG_COLORS, loadSavingsGoals, saveSavingsGoals } from '../storage';
+import { type Transaction, type AppData, loadData, saveData, loadTagColors, TAG_COLORS, loadSavingsGoals, saveSavingsGoals } from '../storage';
 import AddRecordModal from '../components/AddRecordModal';
 import DailyRecords from '../components/DailyRecords';
 import TagStats from '../components/TagStats';
@@ -280,26 +280,6 @@ export default function Accounting() {
     await refresh();
   };
 
-  const handleImport = async () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const json = JSON.parse(text);
-        await importAllData(json);
-        await refresh();
-        alert('导入成功！');
-      } catch {
-        alert('导入失败，请检查文件格式');
-      }
-    };
-    input.click();
-  };
-
   // Common wrapper with sub-nav always visible
   return (
     <div className="accounting-page">
@@ -396,8 +376,6 @@ export default function Accounting() {
               setBudgetInput(String(data.monthlyBudget));
               setShowSettings(true);
             }}>⚙</button>
-            <button className="ac-export-btn" onClick={() => { exportAllData(); alert('备份文件已保存到下载目录'); }}>导出</button>
-            <button className="ac-export-btn" onClick={handleImport}>导入</button>
           </div>
         </div>
 

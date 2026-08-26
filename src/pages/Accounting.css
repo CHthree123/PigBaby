@@ -2203,3 +2203,43 @@
   border: none;
   cursor: pointer;
 }
+
+/* Dark theme: balance card becomes a dark cyber panel with layered glows,
+   grid texture and an accent border instead of the light pink gradient */
+.theme-dark .ac-balance-card.positive {
+  background:
+    radial-gradient(120% 150% at 88% -25%, rgba(110, 231, 240, 0.25), transparent 55%),
+    radial-gradient(120% 150% at -12% 115%, rgba(167, 139, 250, 0.22), transparent 55%),
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255, 255, 255, 0.025) 22px 23px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(255, 255, 255, 0.025) 22px 23px),
+    linear-gradient(135deg, #131722, #1A1428);
+  color: #E9F7F9;
+  border: 1px solid rgba(110, 231, 240, 0.22);
+}
+
+.theme-dark .ac-balance-card.negative {
+  background:
+    radial-gradient(120% 150% at 88% -25%, rgba(251, 113, 133, 0.22), transparent 55%),
+    radial-gradient(120% 150% at -12% 115%, rgba(167, 139, 250, 0.2), transparent 55%),
+    repeating-linear-gradient(0deg, transparent 0 22px, rgba(255, 255, 255, 0.025) 22px 23px),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgba(255, 255, 255, 0.025) 22px 23px),
+    linear-gradient(135deg, #221519, #1A1226);
+  color: #FCEBEF;
+  border: 1px solid rgba(251, 113, 133, 0.25);
+}
+
+.theme-dark .ac-balance-amount {
+  text-shadow: 0 0 20px rgba(110, 231, 240, 0.35);
+}
+
+.theme-dark .ac-balance-card.negative .ac-balance-amount {
+  text-shadow: 0 0 20px rgba(251, 113, 133, 0.35);
+}
+
+.theme-dark .ac-balance-details {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.theme-dark .ac-balance-divider {
+  background: rgba(255, 255, 255, 0.14);
+}
