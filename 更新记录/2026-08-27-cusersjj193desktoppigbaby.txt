@@ -37,3 +37,12 @@ PigBaby 开发记录 · 2026-08-27（深色会话摘录）
 - 合并上一提交 ff95acc（已过期任务与当天任务统一排序）
 - 构建：npm run build + npx cap sync android + gradlew assembleDebug 均通过
 - APK：android/app/build/outputs/apk/debug/app-debug.apk
+
+【追加修复】排序跨类型无效：
+- 现象：今天视图里点 ▲▼ 把任务移到"过期任务/今天任务"两组的交界处，顺序不变。
+- 根因：todayViewTasks 是 [过期组, 今天组] 两个数组各自按 order 排序后再拼接；
+  跨组交换只改了 order，但渲染时每组重新按自己的 order 排序，
+  交换被抵消，视觉上毫无变化。
+- 修复：过期未完成 + 今天未完成合并为"一个整体"按 order 排序渲染，
+  order 是唯一顺序依据，跨组移动立即生效；过期任务仍保留日期徽标。
+- 提交：后续 commit（在 5f011f2 之后）

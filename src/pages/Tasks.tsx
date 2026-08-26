@@ -98,17 +98,16 @@ export default function Tasks() {
   const incompleteTasks = useMemo(() => dateTasks.filter((t) => !t.completed), [dateTasks]);
   const completedTasks = useMemo(() => dateTasks.filter((t) => t.completed), [dateTasks]);
 
-  const pastIncompleteTasks = useMemo(() => {
-    return tasks.filter((t) => !t.completed && t.date < today).sort((a, b) => a.order - b.order || a.date.localeCompare(b.date));
-  }, [tasks, today]);
-
-  // All unfinished tasks shown on today's view in ONE sequence:
-  // rolled past tasks first (each keeps its original date badge), then today's.
-  // Array order IS display order, so ▲▼ moves apply to the whole merged list.
+  // All unfinished tasks shown on today's view in ONE sequence sorted by the
+  // shared `order` field. Concatenating a past group and a today group would
+  // undo cross-boundary ▲▼ moves (each group re-sorts independently), so the
+  // whole list must be one sortable set; rolled tasks keep their date badge.
   const todayViewTasks = useMemo(() => {
     if (selectedDate !== today) return incompleteTasks;
-    return [...pastIncompleteTasks, ...incompleteTasks];
-  }, [selectedDate, today, pastIncompleteTasks, incompleteTasks]);
+    return tasks
+      .filter((t) => !t.completed && t.date <= today)
+      .sort((a, b) => a.order - b.order || a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  }, [selectedDate, today, tasks]);
 
   const futureTaskDates = useMemo(() => {
     return [...new Set(tasks.filter((t) => !t.completed && t.date > today).map((t) => t.date))].sort();
