@@ -353,11 +353,11 @@ export default function Tasks() {
     return (
       <div className="tasks-page">
         <div className="ac-subnav">
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
-          <button className="ac-subnav-btn active" onClick={() => setSubTab('calendar')}>📅 日历</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
+          <button className="ac-subnav-btn active" onClick={() => setSubTab('calendar')}>日历</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
         </div>
         <div key={`calendar-${subTabKey}`} className="view-slide-in">
           {/* Full month calendar */}
@@ -428,7 +428,7 @@ export default function Tasks() {
 
           {/* Tasks of the selected day */}
           <div className="calendar-day-title">
-            📅 {selectedDate === today ? '今天' : selectedDate} 的任务
+            {selectedDate === today ? '今天' : selectedDate} 的任务
           </div>
           {dateTasks.length === 0 ? (
             <EmptyState emoji="📋" title="这天没有任务~" />
@@ -457,11 +457,11 @@ export default function Tasks() {
     return (
       <div className="tasks-page">
         <div className="ac-subnav">
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>📅 日历</button>
-          <button className="ac-subnav-btn active" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>日历</button>
+          <button className="ac-subnav-btn active" onClick={() => setSubTab('checkin')}>打卡</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
         </div>
         <div key={`checkin-${subTabKey}`} className="view-slide-in"><CheckIn /></div>
       </div>
@@ -472,11 +472,11 @@ export default function Tasks() {
     return (
       <div className="tasks-page">
         <div className="ac-subnav">
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>📅 日历</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
-          <button className="ac-subnav-btn active" onClick={() => setSubTab('tips')}>💡 Tips</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>日历</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
+          <button className="ac-subnav-btn active" onClick={() => setSubTab('tips')}>Tips</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
         </div>
         <div key={`tips-${subTabKey}`} className="view-slide-in"><Tips /></div>
       </div>
@@ -487,11 +487,11 @@ export default function Tasks() {
     return (
       <div className="tasks-page">
         <div className="ac-subnav">
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>📋 任务</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>📅 日历</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
-          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
-          <button className="ac-subnav-btn active" onClick={() => setSubTab('projects')}>🏗 工程</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tasks')}>任务</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('calendar')}>日历</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
+          <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
+          <button className="ac-subnav-btn active" onClick={() => setSubTab('projects')}>工程</button>
         </div>
         <div key={`projects-${subTabKey}`} className="view-slide-in"><Projects /></div>
       </div>
@@ -502,10 +502,10 @@ export default function Tasks() {
   return (
     <div className="tasks-page">
       <div className="ac-subnav">
-        <button className="ac-subnav-btn active" onClick={() => setSubTab('tasks')}>📋 任务</button>
-        <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>✅ 打卡</button>
-        <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>💡 Tips</button>
-        <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>🏗 工程</button>
+        <button className="ac-subnav-btn active" onClick={() => setSubTab('tasks')}>任务</button>
+        <button className="ac-subnav-btn" onClick={() => setSubTab('checkin')}>打卡</button>
+        <button className="ac-subnav-btn" onClick={() => setSubTab('tips')}>Tips</button>
+        <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
       </div>
       <div key={`tasks-${subTabKey}`} className="view-slide-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
@@ -550,7 +550,7 @@ export default function Tasks() {
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>
-            📅 {selectedDate === today ? '今天' : selectedDate} 的任务
+            {selectedDate === today ? '今天' : selectedDate} 的任务
             {selectedHoliday && (
               <span style={{ marginLeft: 8, fontSize: 13, fontWeight: 500, color: '#E8708A' }}>
                 {selectedHoliday.emoji} {selectedHoliday.name}

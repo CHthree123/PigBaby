@@ -285,10 +285,10 @@ export default function Accounting() {
     <div className="accounting-page">
       {/* Sub-nav — always visible */}
       <div className="ac-subnav">
-        <button className={`ac-subnav-btn ${view === 'overview' ? 'active' : ''}`} onClick={() => switchView('overview')}>📊 月概览</button>
-        <button className={`ac-subnav-btn ${view === 'daily' ? 'active' : ''}`} onClick={() => switchView('daily')}>📅 按日查询</button>
-        <button className={`ac-subnav-btn ${view === 'tags' ? 'active' : ''}`} onClick={() => switchView('tags')}>🏷️ 标签统计</button>
-        <button className={`ac-subnav-btn ${view === 'piggybank' ? 'active' : ''}`} onClick={() => switchView('piggybank')}>🐷 存钱罐</button>
+        <button className={`ac-subnav-btn ${view === 'overview' ? 'active' : ''}`} onClick={() => switchView('overview')}>月概览</button>
+        <button className={`ac-subnav-btn ${view === 'daily' ? 'active' : ''}`} onClick={() => switchView('daily')}>按日查询</button>
+        <button className={`ac-subnav-btn ${view === 'tags' ? 'active' : ''}`} onClick={() => switchView('tags')}>标签统计</button>
+        <button className={`ac-subnav-btn ${view === 'piggybank' ? 'active' : ''}`} onClick={() => switchView('piggybank')}>存钱罐</button>
       </div>
 
       <SmsAutoSync

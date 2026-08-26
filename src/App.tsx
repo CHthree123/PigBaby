@@ -110,7 +110,7 @@ function App() {
           className={`nav-item ${isActive('/profile') ? 'active' : ''}`}
           onClick={() => navigate('/profile')}
         >
-          <span className="nav-icon">👤</span>
+          <span className="nav-icon">⚙️</span>
           <span className="nav-label">个人</span>
         </button>
       </nav>
