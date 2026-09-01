@@ -106,6 +106,7 @@ export interface CheckInGoal {
   type: 'weekly' | 'monthly';
   targetCount: number;
   createdAt: string;
+  order?: number;  // position inside the task list (shared order space with Task.order)
 }
 
 export interface CheckInRecord {

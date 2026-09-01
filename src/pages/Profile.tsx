@@ -5,7 +5,7 @@ import SmsAutoPanel from '../components/SmsAutoPanel';
 import { saveTheme, type ThemeName } from '../storage';
 import './Profile.css';
 
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.5.3';
 
 interface Props {
   theme: ThemeName;

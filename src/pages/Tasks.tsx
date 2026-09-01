@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Task, TasksData, DateNote } from '../storage';
-import { loadTasks, saveTasks, loadDateNotes, saveDateNotes } from '../storage';
+import type { Task, TasksData, DateNote, CheckInData, CheckInRecord } from '../storage';
+import { loadTasks, saveTasks, loadDateNotes, saveDateNotes, loadCheckIn, saveCheckIn } from '../storage';
 import AddTaskModal from '../components/AddTaskModal';
 import DraggableFab from '../components/DraggableFab';
 import CheckIn from '../components/CheckIn';
@@ -48,6 +48,24 @@ interface UndoState {
   content: string;
 }
 
+// Check-in goals surface in the task list as virtual items (date always = today,
+// so they never look overdue and reset every day). `goalId` links back to the
+// check-in record; `order` is shared with Task.order for cross-type sorting.
+interface TaskViewItem {
+  id: string;
+  content: string;
+  date: string;
+  completed: boolean;
+  completedAt: string | null;
+  order: number;
+  isCheckin: boolean;
+  goalId?: string;
+  reminder?: string | null;
+  createdAt: string;
+}
+
+const CHECKIN_ORDER_BASE = 1e9;
+
 type SubTab = 'tasks' | 'calendar' | 'checkin' | 'tips' | 'projects';
 
 export default function Tasks() {
@@ -89,6 +107,7 @@ export default function Tasks() {
     }
   }, [searchParams, subTab]);
 
+  const [checkinData, setCheckinData] = useState<CheckInData>({ goals: [], records: [], summaries: [] });
   const [hideCompleted, setHideCompleted] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [futureExpanded, setFutureExpanded] = useState(false);
@@ -125,9 +144,17 @@ export default function Tasks() {
     await resyncReminders(t.tasks);
     const n = await loadDateNotes();
     setDateNotes(n.notes);
+    const c = await loadCheckIn();
+    setCheckinData(c);
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Coming back from the check-in tab re-reads check-in state so the task list
+  // reflects toggles made there
+  useEffect(() => {
+    if (subTab === 'tasks') refresh();
+  }, [subTab]);
 
   const dateTasks = useMemo(
     () => tasks.filter((t) => t.date === selectedDate).sort((a, b) => a.order - b.order),
@@ -137,16 +164,48 @@ export default function Tasks() {
   const incompleteTasks = useMemo(() => dateTasks.filter((t) => !t.completed), [dateTasks]);
   const completedTasks = useMemo(() => dateTasks.filter((t) => t.completed), [dateTasks]);
 
+  // Check-in goals appear in the task list as virtual items dated TODAY, so
+  // they never roll over as overdue: a goal left unchecked simply resets to
+  // unchecked the next day (completion = today's record status).
+  const checkinItems = useMemo<TaskViewItem[]>(() => {
+    if (selectedDate !== today) return [];
+    return checkinData.goals.map((g) => {
+      const rec = checkinData.records.find((r) => r.goalId === g.id && r.date === today);
+      return {
+        id: `checkin-${g.id}`,
+        goalId: g.id,
+        content: g.name,
+        date: today,
+        completed: rec?.status === 'success',
+        completedAt: rec?.status === 'success' ? new Date().toISOString() : null,
+        order: g.order ?? CHECKIN_ORDER_BASE,
+        isCheckin: true,
+        createdAt: '',
+      };
+    });
+  }, [checkinData, selectedDate, today]);
+
   // All unfinished tasks shown on today's view in ONE sequence sorted by the
-  // shared `order` field. Concatenating a past group and a today group would
-  // undo cross-boundary ▲▼ moves (each group re-sorts independently), so the
-  // whole list must be one sortable set; rolled tasks keep their date badge.
-  const todayViewTasks = useMemo(() => {
-    if (selectedDate !== today) return incompleteTasks;
-    return tasks
-      .filter((t) => !t.completed && t.date <= today)
-      .sort((a, b) => a.order - b.order || a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
-  }, [selectedDate, today, tasks]);
+  // shared `order` field (real tasks + check-in goals use the same order
+  // space, so ▲▼ moves work across the boundary). Concatenating a past group
+  // and a today group would undo cross-boundary moves, so the whole list must
+  // be one sortable set; rolled tasks keep their date badge.
+  const todayViewTasks = useMemo<TaskViewItem[]>(() => {
+    if (selectedDate !== today) return incompleteTasks.map((t) => ({ ...t, isCheckin: false }));
+    const merged: TaskViewItem[] = [
+      ...tasks.filter((t) => !t.completed && t.date <= today).map((t) => ({ ...t, isCheckin: false })),
+      ...checkinItems.filter((c) => !c.completed),
+    ];
+    return merged.sort((a, b) => a.order - b.order || a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  }, [selectedDate, today, tasks, checkinItems]);
+
+  const completedViewItems = useMemo<TaskViewItem[]>(() => {
+    const merged: TaskViewItem[] = [
+      ...completedTasks.map((t) => ({ ...t, isCheckin: false })),
+      ...checkinItems.filter((c) => c.completed),
+    ];
+    return merged.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+  }, [completedTasks, checkinItems]);
 
   const futureTaskDates = useMemo(() => {
     return [...new Set(tasks.filter((t) => !t.completed && t.date > today).map((t) => t.date))].sort();
@@ -213,21 +272,30 @@ export default function Tasks() {
   };
 
   // ---- Undo ----
-  const showUndo = (taskId: string, content: string) => {
+  const showUndo = (taskId: string, content: string, isCheckin = false) => {
     undoTime.current = Date.now();
     setUndo({ taskId, content });
-    setUndoText('✅ 任务已完成');
+    setUndoText(isCheckin ? '✅ 打卡完成' : '✅ 任务已完成');
     setUndoVisible(true);
   };
 
   const handleUndo = async () => {
     if (!undo) return;
-    const updated = tasks.map((t) =>
-      t.id === undo.taskId ? { ...t, completed: false, completedAt: null } : t
-    );
-    await saveTasks({ tasks: updated });
-    setTasks(updated);
-    await resyncReminders(updated);
+    if (undo.taskId.startsWith('checkin-')) {
+      // Undoing a check-in completion removes today's record (back to unchecked)
+      const goalId = undo.taskId.slice('checkin-'.length);
+      const records = checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today));
+      const newData = { ...checkinData, records };
+      await saveCheckIn(newData);
+      setCheckinData(newData);
+    } else {
+      const updated = tasks.map((t) =>
+        t.id === undo.taskId ? { ...t, completed: false, completedAt: null } : t
+      );
+      await saveTasks({ tasks: updated });
+      setTasks(updated);
+      await resyncReminders(updated);
+    }
     setUndoText('↩ 已撤销');
     setUndo(null);
     setTimeout(() => setUndoVisible(false), 1500);
@@ -316,6 +384,29 @@ export default function Tasks() {
   };
 
   const handleToggleComplete = async (taskId: string) => {
+    // Check-in goal: toggle today's record (success <-> no record). A 'fail'
+    // record counts as not done, so tapping completes it (replaces with success).
+    if (taskId.startsWith('checkin-')) {
+      const goalId = taskId.slice('checkin-'.length);
+      const goal = checkinData.goals.find((g) => g.id === goalId);
+      if (!goal) return;
+      const existing = checkinData.records.find((r) => r.goalId === goalId && r.date === today);
+      let records: CheckInRecord[];
+      if (existing?.status === 'success') {
+        records = checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today));
+      } else {
+        records = [
+          ...checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today)),
+          { date: today, goalId, status: 'success' },
+        ];
+      }
+      const newData = { ...checkinData, records };
+      await saveCheckIn(newData);
+      setCheckinData(newData);
+      if (existing?.status !== 'success') showUndo(taskId, goal.name, true);
+      return;
+    }
+
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
@@ -337,9 +428,11 @@ export default function Tasks() {
     }
   };
 
-  // Reorder a list of tasks by reassigning order 0..n-1; only touches `order`,
-  // never date/completed, so rolled tasks keep their overdue status
-  const reorderList = async (list: Task[], taskId: string, direction: 'up' | 'down') => {
+  // Reorder a list of task items (real tasks + check-in goals) by reassigning
+  // order 0..n-1; only touches `order`, never date/completed, so rolled tasks
+  // keep their overdue status. Real task orders go back to Tasks storage,
+  // check-in goal orders back to CheckIn storage (same numeric space).
+  const reorderList = async (list: TaskViewItem[], taskId: string, direction: 'up' | 'down') => {
     const idx = list.findIndex((t) => t.id === taskId);
     if (idx === -1) return;
     if (direction === 'up' && idx === 0) return;
@@ -348,14 +441,31 @@ export default function Tasks() {
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
 
+    const taskOrderById: Record<string, number> = {};
+    const checkinOrders: Record<string, number> = {};
+    list.forEach((t, i) => {
+      if (t.isCheckin) checkinOrders[t.goalId!] = i;
+      else taskOrderById[t.id] = i;
+    });
+
     const updatedTasks = tasks.map((t) => {
-      const newIdx = list.findIndex((r) => r.id === t.id);
-      if (newIdx !== -1) return { ...t, order: newIdx };
+      const newIdx = taskOrderById[t.id];
+      if (newIdx !== undefined) return { ...t, order: newIdx };
       return t;
     });
 
     await saveTasks({ tasks: updatedTasks });
     setTasks(updatedTasks);
+
+    const goalIds = Object.keys(checkinOrders);
+    if (goalIds.length > 0) {
+      const updatedGoals = checkinData.goals.map((g) =>
+        checkinOrders[g.id] !== undefined ? { ...g, order: checkinOrders[g.id] } : g
+      );
+      const newData = { ...checkinData, goals: updatedGoals };
+      await saveCheckIn(newData);
+      setCheckinData(newData);
+    }
   };
 
   // Moves apply across the whole merged list (rolled + today) on today's view
@@ -606,11 +716,11 @@ export default function Tasks() {
           </label>
         </div>
 
-        {todayViewTasks.length === 0 && completedTasks.length === 0 ? (
+        {todayViewTasks.length === 0 && completedViewItems.length === 0 ? (
           <EmptyState emoji="📋" title="📋 这天没有任务~" />
         ) : (
           <>
-            {/* One unified sequence: rolled past tasks (with date badge) + today's tasks */}
+            {/* One unified sequence: rolled past tasks (with date badge) + today's tasks + check-in goals */}
             {todayViewTasks.length > 0 && (
               <div className="task-list">
                 {todayViewTasks.map((task, idx) => (
@@ -623,10 +733,11 @@ export default function Tasks() {
                       className="task-checkbox"
                       onClick={() => handleToggleComplete(task.id)}
                     />
-                    <div className="task-content" onClick={() => setEditingTask(task)}>
+                    <div className="task-content" onClick={() => { if (!task.isCheckin) setEditingTask(task); }}>
+                      {task.isCheckin && <span className="checkin-task-badge">打卡</span>}
                       {task.content}
-                      {task.date < today && <span className="task-rolled-date">{task.date.slice(5)}</span>}
-                      <ReminderBadge reminder={task.reminder} />
+                      {!task.isCheckin && task.date < today && <span className="task-rolled-date">{task.date.slice(5)}</span>}
+                      {!task.isCheckin && <ReminderBadge reminder={task.reminder} />}
                     </div>
                   </div>
                 ))}
@@ -634,19 +745,23 @@ export default function Tasks() {
             )}
 
             {/* Completed */}
-            {!hideCompleted && completedTasks.length > 0 && (
+            {!hideCompleted && completedViewItems.length > 0 && (
               <>
                 <div className="task-section-title" style={{ marginTop: 12 }}>✅ 已完成</div>
                 <div className="task-list">
-                  {completedTasks.map((task) => (
+                  {completedViewItems.map((task) => (
                     <div key={task.id} className="task-item completed">
                       <div style={{ width: 32, flexShrink: 0 }} />
                       <div
                         className="task-checkbox checked"
                         onClick={() => handleToggleComplete(task.id)}
                       >✓</div>
-                      <div className="task-content done" onClick={() => setEditingTask(task)}>{task.content}<ReminderBadge reminder={task.reminder} /></div>
-                      <span className="task-completed-time">{formatCompletedTime(task.completedAt)}</span>
+                      <div className="task-content done" onClick={() => { if (!task.isCheckin) setEditingTask(task); }}>
+                        {task.isCheckin && <span className="checkin-task-badge">打卡</span>}
+                        {task.content}
+                        {!task.isCheckin && <ReminderBadge reminder={task.reminder} />}
+                      </div>
+                      <span className="task-completed-time">{task.isCheckin ? '今天' : formatCompletedTime(task.completedAt)}</span>
                     </div>
                   ))}
                 </div>
