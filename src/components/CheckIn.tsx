@@ -70,6 +70,14 @@ export default function CheckIn() {
 
   useEffect(() => { refresh(); }, []);
 
+  // Open on the view matching the goal type: weekly goal -> week view,
+  // monthly goal -> month view (previously it always opened on the week
+  // view, so monthly goals showed a week page on first entry)
+  useEffect(() => {
+    const g = data.goals.find((gg) => gg.id === activeGoalId);
+    if (g) setViewMode(g.type === 'weekly' ? 'week' : 'month');
+  }, [activeGoalId, data.goals]);
+
   const activeGoal = useMemo(
     () => data.goals.find((g) => g.id === activeGoalId) || null,
     [data.goals, activeGoalId]

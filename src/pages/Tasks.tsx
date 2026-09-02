@@ -60,6 +60,7 @@ interface TaskViewItem {
   order: number;
   isCheckin: boolean;
   goalId?: string;
+  hasFail?: boolean;
   reminder?: string | null;
   createdAt: string;
 }
@@ -180,6 +181,7 @@ export default function Tasks() {
         completedAt: rec?.status === 'success' ? new Date().toISOString() : null,
         order: g.order ?? CHECKIN_ORDER_BASE,
         isCheckin: true,
+        hasFail: rec?.status === 'fail',
         createdAt: '',
       };
     });
@@ -426,6 +428,24 @@ export default function Tasks() {
       setTasks(updated);
       await resyncReminders(updated);
     }
+  };
+
+  // "Give up" today's check-in: mark the day as fail (shown as ✗ in the
+  // check-in page). Tapping again removes the mark.
+  const handleQuitCheckin = async (goalId: string) => {
+    const existing = checkinData.records.find((r) => r.goalId === goalId && r.date === today);
+    let records: CheckInRecord[];
+    if (existing?.status === 'fail') {
+      records = checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today));
+    } else {
+      records = [
+        ...checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today)),
+        { date: today, goalId, status: 'fail' },
+      ];
+    }
+    const newData = { ...checkinData, records };
+    await saveCheckIn(newData);
+    setCheckinData(newData);
   };
 
   // Reorder a list of task items (real tasks + check-in goals) by reassigning
@@ -739,6 +759,14 @@ export default function Tasks() {
                       {!task.isCheckin && task.date < today && <span className="task-rolled-date">{task.date.slice(5)}</span>}
                       {!task.isCheckin && <ReminderBadge reminder={task.reminder} />}
                     </div>
+                    {task.isCheckin && !task.completed && (
+                      <button
+                        className={`task-quit-btn ${task.hasFail ? 'quit' : ''}`}
+                        onClick={() => handleQuitCheckin(task.goalId!)}
+                      >
+                        {task.hasFail ? '已放弃' : '放弃'}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

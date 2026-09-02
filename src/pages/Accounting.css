@@ -1147,6 +1147,24 @@
   cursor: pointer;
 }
 
+/* Give-up button for today's check-in goal in the task list */
+.task-quit-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.task-quit-btn.quit {
+  background: #FF6B6B;
+  border-color: #FF6B6B;
+  color: #fff;
+}
+
 /* Check-in goal badge in the task list */
 .checkin-task-badge {
   display: inline-block;
