@@ -60,7 +60,6 @@ interface TaskViewItem {
   order: number;
   isCheckin: boolean;
   goalId?: string;
-  hasFail?: boolean;
   reminder?: string | null;
   createdAt: string;
 }
@@ -170,21 +169,23 @@ export default function Tasks() {
   // unchecked the next day (completion = today's record status).
   const checkinItems = useMemo<TaskViewItem[]>(() => {
     if (selectedDate !== today) return [];
-    return checkinData.goals.map((g) => {
-      const rec = checkinData.records.find((r) => r.goalId === g.id && r.date === today);
-      return {
-        id: `checkin-${g.id}`,
-        goalId: g.id,
-        content: g.name,
-        date: today,
-        completed: rec?.status === 'success',
-        completedAt: rec?.status === 'success' ? new Date().toISOString() : null,
-        order: g.order ?? CHECKIN_ORDER_BASE,
-        isCheckin: true,
-        hasFail: rec?.status === 'fail',
-        createdAt: '',
-      };
-    });
+    // Goals marked as given-up (fail) today disappear from the task list
+    return checkinData.goals
+      .filter((g) => !checkinData.records.some((r) => r.goalId === g.id && r.date === today && r.status === 'fail'))
+      .map((g) => {
+        const rec = checkinData.records.find((r) => r.goalId === g.id && r.date === today);
+        return {
+          id: `checkin-${g.id}`,
+          goalId: g.id,
+          content: g.name,
+          date: today,
+          completed: rec?.status === 'success',
+          completedAt: rec?.status === 'success' ? new Date().toISOString() : null,
+          order: g.order ?? CHECKIN_ORDER_BASE,
+          isCheckin: true,
+          createdAt: '',
+        };
+      });
   }, [checkinData, selectedDate, today]);
 
   // All unfinished tasks shown on today's view in ONE sequence sorted by the
@@ -274,17 +275,17 @@ export default function Tasks() {
   };
 
   // ---- Undo ----
-  const showUndo = (taskId: string, content: string, isCheckin = false) => {
+  const showUndo = (taskId: string, content: string, text = '✅ 任务已完成') => {
     undoTime.current = Date.now();
     setUndo({ taskId, content });
-    setUndoText(isCheckin ? '✅ 打卡完成' : '✅ 任务已完成');
+    setUndoText(text);
     setUndoVisible(true);
   };
 
   const handleUndo = async () => {
     if (!undo) return;
     if (undo.taskId.startsWith('checkin-')) {
-      // Undoing a check-in completion removes today's record (back to unchecked)
+      // Undoing a check-in action (completion or give-up) removes today's record
       const goalId = undo.taskId.slice('checkin-'.length);
       const records = checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today));
       const newData = { ...checkinData, records };
@@ -405,7 +406,7 @@ export default function Tasks() {
       const newData = { ...checkinData, records };
       await saveCheckIn(newData);
       setCheckinData(newData);
-      if (existing?.status !== 'success') showUndo(taskId, goal.name, true);
+      if (existing?.status !== 'success') showUndo(taskId, goal.name, '✅ 打卡完成');
       return;
     }
 
@@ -431,21 +432,19 @@ export default function Tasks() {
   };
 
   // "Give up" today's check-in: mark the day as fail (shown as ✗ in the
-  // check-in page). Tapping again removes the mark.
+  // check-in page) and remove the goal from today's task list. The undo toast
+  // gives a short window to take the mark back (removes today's record).
   const handleQuitCheckin = async (goalId: string) => {
-    const existing = checkinData.records.find((r) => r.goalId === goalId && r.date === today);
-    let records: CheckInRecord[];
-    if (existing?.status === 'fail') {
-      records = checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today));
-    } else {
-      records = [
-        ...checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today)),
-        { date: today, goalId, status: 'fail' },
-      ];
-    }
+    const goal = checkinData.goals.find((g) => g.id === goalId);
+    if (!goal) return;
+    const records = [
+      ...checkinData.records.filter((r) => !(r.goalId === goalId && r.date === today)),
+      { date: today, goalId, status: 'fail' as const },
+    ];
     const newData = { ...checkinData, records };
     await saveCheckIn(newData);
     setCheckinData(newData);
+    showUndo(`checkin-${goalId}`, goal.name, '✅ 打卡已放弃');
   };
 
   // Reorder a list of task items (real tasks + check-in goals) by reassigning
@@ -761,10 +760,10 @@ export default function Tasks() {
                     </div>
                     {task.isCheckin && !task.completed && (
                       <button
-                        className={`task-quit-btn ${task.hasFail ? 'quit' : ''}`}
+                        className="task-quit-btn"
                         onClick={() => handleQuitCheckin(task.goalId!)}
                       >
-                        {task.hasFail ? '已放弃' : '放弃'}
+                        放弃
                       </button>
                     )}
                   </div>

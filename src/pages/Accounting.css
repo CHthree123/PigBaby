@@ -1159,12 +1159,6 @@
   cursor: pointer;
 }
 
-.task-quit-btn.quit {
-  background: #FF6B6B;
-  border-color: #FF6B6B;
-  color: #fff;
-}
-
 /* Check-in goal badge in the task list */
 .checkin-task-badge {
   display: inline-block;
