@@ -3,6 +3,8 @@
   flex-direction: column;
   height: 100dvh;
   overflow: hidden;
+  /* Android 15/16 edge-to-edge：内容下移让出透明状态栏，空出的条带显示 --bg，深浅主题均统一 */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .app-main {

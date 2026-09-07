@@ -236,3 +236,18 @@ PigBaby 开发记录 · 2026-08-27（深色会话摘录）
    - 状态栏改为跟随 App 主题：浅色主题浅粉底 #FFF5F5 + 深色图标；
      酷黑主题 #12121A + 浅色图标；主题切换时由 @capacitor/status-bar
      运行时更新（新增依赖），Manifest 声明 opt-out 边到边以保持兼容
+
+
+【追加更新】v1.5.11 修复 v1.5.10 状态栏遮住页面头部（未推送）：
+1. 用户反馈顶部颜色已统一但仍遮住导航栏：Android 15/16 强制
+   edge-to-edge（targetSdk 36 无法 opt-out），状态栏为透明、内容
+   上顶。index.html 已有 viewport-fit=cover，Capacitor 8 进入
+   "穿透"模式后需要应用自己用 env(safe-area-inset-top) 让位，
+   而 App 从未做顶部安全区（以前全屏模式不需要）
+2. 修复：.app-shell 增加 padding-top: env(safe-area-inset-top)，
+   内容下移让出透明状态栏；空出的条带显示页面 --bg 背景，浅色/
+   酷黑主题均自动统一；底部导航原有 env(safe-area-inset-bottom)
+   兼容。API<15 设备 env 为 0 无副作用
+3. 图标问题排查：v1.5.10 已替换全部 PNG/矢量图标资源（APK 内
+   已验证），若桌面仍显示旧图标为启动器缓存，先重启手机刷新，
+   无需卸载（卸载会丢本地数据）
