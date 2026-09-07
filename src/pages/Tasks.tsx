@@ -536,7 +536,15 @@ export default function Tasks() {
     window.removeEventListener('pointercancel', handlePreDragEnd);
   };
 
+  // Android WebView：浏览器在滑动时会判定“滚动”并抢走手势（发 pointercancel），
+  // 拖拽就会不动。touch-action 必须手势开始前就设好，中途加类无效，
+  // 所以在拖拽激活瞬间挂非 passive touchmove 的 preventDefault 阻止接管。
+  const noScrollDuringDrag = (ev: TouchEvent) => { ev.preventDefault(); };
+  const addNoScrollGuard = () => document.addEventListener('touchmove', noScrollDuringDrag, { passive: false });
+  const removeNoScrollGuard = () => document.removeEventListener('touchmove', noScrollDuringDrag);
+
   const onDragEnd = () => {
+    removeNoScrollGuard();
     const ctl = dragCtl.current;
     if (!ctl?.active) return;
     ctl.active = false;
@@ -617,6 +625,7 @@ export default function Tasks() {
     setDragId(hold.id);
     setDragY(0);
     document.body.style.overflow = 'hidden';
+    addNoScrollGuard();
     window.addEventListener('pointermove', onDragMove);
     window.addEventListener('pointerup', onDragEnd);
     window.addEventListener('pointercancel', onDragEnd);
