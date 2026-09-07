@@ -1790,19 +1790,14 @@
   animation: popIn 0.25s ease;
 }
 
+/* 失败：保持空白圆，只显示醒目的 ✗（不再用灰底/黑环区分状态） */
 .checkin-dot.fail {
-  background: #E0E0E0;
-  border-color: #BDBDBD;
-  color: #9E9E9E;
-}
-
-.checkin-dot.today {
-  border-color: var(--primary-dark);
-  border-width: 3px;
+  background: var(--bg);
+  border-color: rgba(255, 107, 107, 0.55);
+  color: #FF6B6B;
 }
 
 .checkin-dot.future {
-  opacity: 0.35;
   pointer-events: none;
 }
 
@@ -1845,18 +1840,25 @@
   animation: popIn 0.25s ease;
 }
 
+/* 失败：日期正常显示，右上角加小 ✗ 标记（灰底去掉了） */
 .checkin-month-dot.fail {
-  background: #E0E0E0;
-  color: #9E9E9E;
+  background: var(--bg);
+  color: var(--text);
 }
 
-.checkin-month-dot.today {
-  box-shadow: 0 0 0 2px var(--primary-dark);
+.checkin-month-dot.fail::after {
+  content: '✗';
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #FF6B6B;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .checkin-month-dot.future {
-  color: var(--text-muted);
-  opacity: 0.4;
   pointer-events: none;
 }
 
