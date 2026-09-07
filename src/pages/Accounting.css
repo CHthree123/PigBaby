@@ -1639,16 +1639,29 @@
   transform: scale(0.92);
 }
 
-/* ===== Task drag handle & states ===== */
+/* ===== 拖拽把手（touch-action:none → 浏览器不把手势当滚动，拖拽可靠） ===== */
 .task-drag-handle {
-  color: var(--text-muted);
-  font-size: 16px;
-  padding: 0 2px;
   flex-shrink: 0;
+  width: 26px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   touch-action: none;
+}
+
+.task-drag-handle:active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 .task-item.dragging {

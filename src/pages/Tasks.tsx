@@ -121,14 +121,13 @@ export default function Tasks() {
   // granted in Profile; falls back to the built-in table otherwise)
   const [sysHolidays, setSysHolidays] = useState<Map<string, SysHoliday>>(new Map());
 
-  // ---- 长按 1.5s 拖拽排序 ----
+  // ---- 拖拽把手排序（把手区域 touch-action:none，按住即可拖动） ----
   const [dragItems, setDragItems] = useState<TaskViewItem[] | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0); // 被拖行的 translateY
   const dragItemsRef = useRef<TaskViewItem[]>([]);
   const baseListRef = useRef<TaskViewItem[]>([]);
   const dragCtl = useRef<{ active: boolean; id: string; grabOffset: number } | null>(null);
-  const holdCtl = useRef<{ id: string; x: number; y: number; items: TaskViewItem[]; timer: ReturnType<typeof setTimeout> } | null>(null);
   const suppressClick = useRef(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -525,26 +524,35 @@ export default function Tasks() {
   const persistRef = useRef(persistListOrder);
   persistRef.current = persistListOrder;
 
-  // ---- 长按拖拽排序 ----
-  const DRAG_HOLD_MS = 1500;
-
-  const clearHold = () => {
-    if (holdCtl.current?.timer) clearTimeout(holdCtl.current.timer);
-    holdCtl.current = null;
-    window.removeEventListener('pointermove', handlePreDragMove);
-    window.removeEventListener('pointerup', handlePreDragEnd);
-    window.removeEventListener('pointercancel', handlePreDragEnd);
+  // ---- 拖拽把手排序 ----
+  // Android WebView 会把普通区域的触摸在滑动时判为“滚动”并抢走手势
+  // （pointercancel），整行长按方案因此不可靠；把手 touch-action:none，
+  // 浏览器自始至终不把手势当滚动，pointer 事件流稳定。
+  const startHandleDrag = (e: RPointerEvent, id: string) => {
+    if (selectedDate !== today) return;
+    if (dragCtl.current?.active) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const items = dragItems ?? todayViewTasks;
+    if (items.length < 2 || !items.some((it) => it.id === id)) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-task-id="${id}"]`);
+    if (!el) return;
+    e.preventDefault(); // 阻断兼容 click，防止松手误触发完成/编辑
+    const rect = el.getBoundingClientRect();
+    const copy = [...items];
+    dragItemsRef.current = copy;
+    baseListRef.current = copy;
+    dragCtl.current = { active: true, id, grabOffset: e.clientY - rect.top };
+    setDragItems(copy);
+    setDragId(id);
+    setDragY(0);
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+    try { navigator.vibrate?.(10); } catch { /* 震动不可用时忽略 */ }
   };
 
-  // Android WebView：浏览器在滑动时会判定“滚动”并抢走手势（发 pointercancel），
-  // 拖拽就会不动。touch-action 必须手势开始前就设好，中途加类无效，
-  // 所以在拖拽激活瞬间挂非 passive touchmove 的 preventDefault 阻止接管。
-  const noScrollDuringDrag = (ev: TouchEvent) => { ev.preventDefault(); };
-  const addNoScrollGuard = () => document.addEventListener('touchmove', noScrollDuringDrag, { passive: false });
-  const removeNoScrollGuard = () => document.removeEventListener('touchmove', noScrollDuringDrag);
-
   const onDragEnd = () => {
-    removeNoScrollGuard();
     const ctl = dragCtl.current;
     if (!ctl?.active) return;
     ctl.active = false;
@@ -608,68 +616,6 @@ export default function Tasks() {
     setDragItems(next);
     setDragY((v) => v - layoutDelta);
   };
-
-  const activateDrag = (hold: NonNullable<typeof holdCtl.current>) => {
-    if (dragCtl.current?.active) return;
-    if (hold.items.length < 2) return;
-    if (!hold.items.some((it) => it.id === hold.id)) return;
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-task-id="${hold.id}"]`);
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    clearHold();
-    const items = [...hold.items];
-    dragItemsRef.current = items;
-    baseListRef.current = items;
-    dragCtl.current = { active: true, id: hold.id, grabOffset: hold.y - rect.top };
-    setDragItems(items);
-    setDragId(hold.id);
-    setDragY(0);
-    document.body.style.overflow = 'hidden';
-    addNoScrollGuard();
-    window.addEventListener('pointermove', onDragMove);
-    window.addEventListener('pointerup', onDragEnd);
-    window.addEventListener('pointercancel', onDragEnd);
-    try { navigator.vibrate?.(10); } catch { /* 震动不可用时忽略 */ }
-  };
-
-  const handleRowPointerDown = (e: RPointerEvent, id: string) => {
-    if (selectedDate !== today) return;
-    if (dragCtl.current?.active || holdCtl.current) return;
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    const items = dragItems ?? todayViewTasks;
-    if (!items.some((it) => it.id === id)) return;
-    holdCtl.current = {
-      id,
-      x: e.clientX,
-      y: e.clientY,
-      items,
-      timer: setTimeout(() => {
-        const hold = holdCtl.current;
-        if (hold && hold.id === id) activateDrag(hold);
-      }, DRAG_HOLD_MS),
-    };
-    // 手指/鼠标移到行外或提前松开时也要能取消（指针可能未捕获在行上）
-    window.addEventListener('pointermove', handlePreDragMove);
-    window.addEventListener('pointerup', handlePreDragEnd);
-    window.addEventListener('pointercancel', handlePreDragEnd);
-  };
-
-  const handlePreDragMove = (e: PointerEvent) => {
-    const h = holdCtl.current;
-    if (!h) return;
-    if (Math.abs(e.clientX - h.x) > 10 || Math.abs(e.clientY - h.y) > 10) clearHold();
-  };
-
-  const handlePreDragEnd = () => clearHold();
-
-  const handleRowPointerMove = (e: RPointerEvent) => {
-    const h = holdCtl.current;
-    if (!h) return;
-    // 按住期间手指大幅移动 → 视为滚动页面，取消待触发拖拽
-    if (Math.abs(e.clientX - h.x) > 10 || Math.abs(e.clientY - h.y) > 10) clearHold();
-  };
-
-  const handleRowPointerEnd = () => clearHold();
 
   const handleRowClick = (e: RMouseEvent, task: TaskViewItem) => {
     if (suppressClick.current) return;
@@ -940,12 +886,6 @@ export default function Tasks() {
               >
                 {(dragItems ?? todayViewTasks).map((task) => {
                   const isDragRow = dragId === task.id;
-                  const dragProps = selectedDate === today ? {
-                    onPointerDown: (e: RPointerEvent) => handleRowPointerDown(e, task.id),
-                    onPointerMove: handleRowPointerMove,
-                    onPointerUp: handleRowPointerEnd,
-                    onPointerCancel: handleRowPointerEnd,
-                  } : {};
                   return (
                     <div
                       key={task.id}
@@ -953,8 +893,13 @@ export default function Tasks() {
                       className={`task-item ${isDragRow ? 'dragging' : ''}`}
                       style={isDragRow ? { '--drag-y': `${dragY}px` } as CSSProperties : undefined}
                       onClick={(e) => handleRowClick(e, task)}
-                      {...dragProps}
                     >
+                      {selectedDate === today && (
+                        <div
+                          className="task-drag-handle"
+                          onPointerDown={(e) => startHandleDrag(e, task.id)}
+                        >⋮</div>
+                      )}
                       <div className="task-checkbox" data-act="toggle" />
                       <div className="task-content">
                         {task.isCheckin && <span className="checkin-task-badge">打卡</span>}
