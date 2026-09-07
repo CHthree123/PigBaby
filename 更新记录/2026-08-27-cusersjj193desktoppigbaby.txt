@@ -219,3 +219,20 @@ PigBaby 开发记录 · 2026-08-27（深色会话摘录）
 2. 改为每行左侧 ⋮ 拖拽把手（touch-action:none）：按住把手即可
    直接拖动，浏览器自始至终不把手势判为滚动，指针事件流稳定；
    松开落位实时换序、保存逻辑不变；其余区域点击/滚动不受影响
+
+
+【追加更新】v1.5.10 图标与顶部颜色修复（未推送，待用户实测通过后与 v1.5.7/8/9 一起推）：
+1. 修复手机桌面显示安卓默认图标：旧的自适应图标（v1.2.0 已有猪猪）只覆盖
+   Android 8+，旧版 Android 与部分启动器读取的 PNG 一直是初版模板默认图。
+   - 用 public/pig.svg 生成全套 mipmap（mdpi~xxxhdpi）ic_launcher.png /
+     ic_launcher_round.png（圆形裁切版）/ ic_launcher_foreground.png，
+     背景 #FF9BB3、猪居中的方形图标
+   - 自适应图标前景套 <group scale 0.58> 缩入安全区（66dp），避免圆形/
+     方形遮罩裁掉耳朵；启动页 splash.png 也换成粉渐变底 + 猪
+2. 修复顶部黑色/与页面颜色不统一：
+   - 移除 MainActivity 的 FLAG_FULLSCREEN 与主题 windowFullscreen——
+     之前强制隐藏状态栏，挖孔/刘海机型顶部会出现黑色 letterbox 条，
+     Android 15+ 还会忽略全屏标记导致状态栏样式失控
+   - 状态栏改为跟随 App 主题：浅色主题浅粉底 #FFF5F5 + 深色图标；
+     酷黑主题 #12121A + 浅色图标；主题切换时由 @capacitor/status-bar
+     运行时更新（新增依赖），Manifest 声明 opt-out 边到边以保持兼容

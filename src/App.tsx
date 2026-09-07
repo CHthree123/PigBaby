@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import type { PluginListenerHandle } from '@capacitor/core';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import Accounting from './pages/Accounting';
 import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
@@ -19,6 +20,14 @@ function App() {
 
   useEffect(() => {
     document.body.classList.toggle('theme-dark', theme === 'dark');
+  }, [theme]);
+
+  // Status bar follows the in-app theme so the top of the screen stays unified
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const dark = theme === 'dark';
+    StatusBar.setStyle({ style: dark ? Style.Light : Style.Dark });
+    StatusBar.setBackgroundColor({ color: dark ? '#12121A' : '#FFF5F5' });
   }, [theme]);
 
   useEffect(() => {

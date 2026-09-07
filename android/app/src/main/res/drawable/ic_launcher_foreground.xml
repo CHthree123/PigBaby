@@ -5,6 +5,13 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Scaled into the adaptive-icon safe zone (center 66dp) so circular/squircle masks don't crop ears -->
+    <group
+        android:scaleX="0.58"
+        android:scaleY="0.58"
+        android:translateX="22.68"
+        android:translateY="23.55">
+
     <!-- Left ear (large floppy) -->
     <path
         android:fillColor="#E8708A"
@@ -67,4 +74,5 @@
     <!-- Tiny hooves -->
     <path android:fillColor="#E8708A" android:pathData="M36,88 A6,4.5 0 1,0 36,97 A6,4.5 0 1,0 36,88 Z"/>
     <path android:fillColor="#E8708A" android:pathData="M72,88 A6,4.5 0 1,0 72,97 A6,4.5 0 1,0 72,88 Z"/>
+    </group>
 </vector>

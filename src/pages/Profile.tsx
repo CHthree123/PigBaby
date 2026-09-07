@@ -12,7 +12,7 @@ import {
 } from '../sysCalendar';
 import './Profile.css';
 
-const APP_VERSION = '1.5.9';
+const APP_VERSION = '1.5.10';
 
 interface Props {
   theme: ThemeName;
