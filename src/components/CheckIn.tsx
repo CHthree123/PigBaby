@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { CheckInGoal, CheckInData, CheckInRecord, CheckInSummary } from '../storage';
 import { loadCheckIn, saveCheckIn } from '../storage';
+import { getSysHolidaysForMonths, type SysHoliday } from '../sysCalendar';
 import EmptyState from './EmptyState';
 
 function todayStr(): string {
@@ -59,6 +60,9 @@ export default function CheckIn() {
 
   const today = todayStr();
   const justToggled = useRef(false);
+
+  // 节假日标记：开启「手机日历同步」时取系统日历，否则内置表（本组件只渲染标记）
+  const [sysHolidays, setSysHolidays] = useState<Map<string, SysHoliday>>(new Map());
 
   const refresh = useCallback(async () => {
     const d = await loadCheckIn();
@@ -178,6 +182,25 @@ export default function CheckIn() {
   const weekEnd = new Date(weekMonday);
   weekEnd.setDate(weekMonday.getDate() + 6);
 
+  // 拉取屏幕上出现的月份（周视图跨度可能跨月）的节假日
+  const visibleMonthsKey = useMemo(() => {
+    const keys = new Set<string>();
+    if (viewMode === 'week') {
+      weekDays.forEach((d) => keys.add(d.slice(0, 7)));
+    } else {
+      keys.add(`${calYear}-${String(calMonth).padStart(2, '0')}`);
+    }
+    return [...keys].sort().join(',');
+  }, [viewMode, weekDays, calYear, calMonth]);
+
+  useEffect(() => {
+    let alive = true;
+    const months = visibleMonthsKey.split(',').filter(Boolean);
+    if (months.length === 0) return;
+    getSysHolidaysForMonths(months).then((m) => { if (alive) setSysHolidays(m); });
+    return () => { alive = false; };
+  }, [visibleMonthsKey]);
+
   const weekProgress = useMemo(() => {
     if (!activeGoal || activeGoal.type !== 'weekly') return null;
     const count = weekDays.filter((d) => {
@@ -197,12 +220,15 @@ export default function CheckIn() {
     return { count, target: activeGoal.targetCount, pct: Math.min(100, Math.round((count / activeGoal.targetCount) * 100)) };
   }, [calYear, calMonth, activeGoal, data.records]);
 
-  const firstDay = getFirstDayOfWeek(calYear, calMonth);
   const totalDays = daysInMonth(calYear, calMonth);
   const prevMonthDays = daysInMonth(calYear, calMonth - 1 === 0 ? 12 : calMonth - 1);
 
+  // Columns run Monday-first (一..日) but getDay() is Sunday-first (0=Sunday),
+  // so months starting on a Sunday used to be shifted one column off.
+  const leadingBlanks = (getFirstDayOfWeek(calYear, calMonth) + 6) % 7;
+
   const monthCalendarDays: { day: number; month: 'prev' | 'current' | 'next'; dateStr: string }[] = [];
-  for (let i = firstDay - 1; i >= 0; i--) {
+  for (let i = leadingBlanks - 1; i >= 0; i--) {
     const d = prevMonthDays - i;
     const m = calMonth - 1 === 0 ? 12 : calMonth - 1;
     const y = calMonth - 1 === 0 ? calYear - 1 : calYear;
@@ -376,6 +402,7 @@ export default function CheckIn() {
                         {rec?.status === 'success' ? '✓' : rec?.status === 'fail' ? '✗' : ''}
                       </button>
                       <div className="checkin-day-num">{dateStr.slice(8)}</div>
+                      <div className="checkin-day-holiday">{sysHolidays.get(dateStr)?.emoji ?? ''}</div>
                     </div>
                   );
                 })}
@@ -417,6 +444,9 @@ export default function CheckIn() {
                       disabled={isFuture || isOther}
                     >
                       {day}
+                      {!isOther && sysHolidays.get(dateStr) && (
+                        <span className="checkin-month-holi">{sysHolidays.get(dateStr)?.emoji}</span>
+                      )}
                     </button>
                   );
                 })}

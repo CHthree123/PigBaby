@@ -54,4 +54,7 @@
     <!-- 短信自动记账：RECEIVE_SMS 安装即授（收短信），READ_SMS 运行时申请（读历史账单） -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- 节假日同步手机系统日历：可选授权，未授权时用内置节假日表 -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
 </manifest>

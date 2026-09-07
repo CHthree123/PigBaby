@@ -3,9 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import SmsAutoPanel from '../components/SmsAutoPanel';
 import { saveTheme, type ThemeName } from '../storage';
+import {
+  sysCalendarAvailable,
+  loadSysCalEnabled,
+  setSysCalEnabled,
+  sysCalPermissionGranted,
+  requestSysCalPermission,
+} from '../sysCalendar';
 import './Profile.css';
 
-const APP_VERSION = '1.5.5';
+const APP_VERSION = '1.5.6';
 
 interface Props {
   theme: ThemeName;
@@ -16,6 +23,30 @@ export default function Profile({ theme, onThemeChange }: Props) {
   const navigate = useNavigate();
   const [notifStatus, setNotifStatus] = useState('检查中…');
   const [alarmStatus, setAlarmStatus] = useState('检查中…');
+
+  const [calSync, setCalSync] = useState<'checking' | 'off' | 'granted' | 'denied'>('checking');
+
+  const initCalSync = async () => {
+    if (!sysCalendarAvailable()) { setCalSync('off'); return; }
+    const enabled = await loadSysCalEnabled();
+    if (!enabled) { setCalSync('off'); return; }
+    const granted = await sysCalPermissionGranted();
+    setCalSync(granted ? 'granted' : 'denied');
+  };
+
+  useEffect(() => { initCalSync(); }, []);
+
+  const handleCalSyncToggle = async () => {
+    if (calSync === 'checking') return;
+    if (calSync !== 'off') {
+      await setSysCalEnabled(false);
+      setCalSync('off');
+      return;
+    }
+    const granted = await requestSysCalPermission();
+    if (granted) await setSysCalEnabled(true);
+    setCalSync(granted ? 'granted' : 'off');
+  };
 
   const checkNotif = async () => {
     try {
@@ -84,6 +115,20 @@ export default function Profile({ theme, onThemeChange }: Props) {
             <span className="profile-row-title">⏰ 精确闹钟（熄屏准点提醒）</span>
             <span className={`profile-row-status ${alarmStatus === '已开启' ? 'on' : ''}`}>{alarmStatus}</span>
             <button className="sms-auto-btn" onClick={openAlarmSettings}>去开启</button>
+          </div>
+          <div className="profile-divider" />
+          <div className="profile-row">
+            <span className="profile-row-title">📅 节假日同步手机日历</span>
+            <span className={`profile-row-status ${calSync === 'granted' ? 'on' : ''}`}>
+              {calSync === 'checking' ? '检查中…' : calSync === 'granted' ? '已开启·实时' : calSync === 'denied' ? '未授权' : '未开启'}
+            </span>
+            <button className="sms-auto-btn" onClick={handleCalSyncToggle} disabled={calSync === 'checking'}>
+              {calSync === 'checking' ? '…' : calSync !== 'off' ? '关闭' : '开启并授权'}
+            </button>
+          </div>
+          <div className="profile-row-note">
+            开启后，打卡与日历页的节假日以手机系统日历实时为准（需授权读取日历；手机需已订阅「节假日」日历）。
+            未授权或手机没有订阅时，自动显示内置节假日表。
           </div>
         </div>
       </div>

@@ -1061,6 +1061,11 @@
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
   transition: all 0.15s;
+  /* 长按拖拽：禁止长按弹出系统菜单/选中文本 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 .task-item.expired {
@@ -1647,14 +1652,14 @@
 }
 
 .task-item.dragging {
-  transform: scale(1.03);
+  transform: translateY(var(--drag-y, 0px)) scale(1.02);
+  transition: none;
   box-shadow: var(--shadow-lg);
   background: var(--card-bg);
   opacity: 0.95;
-}
-
-.task-item.drag-over {
-  border-top: 2px dashed var(--primary);
+  z-index: 20;
+  position: relative;
+  touch-action: none;
 }
 
 /* ===== CheckIn Styles ===== */
@@ -1860,6 +1865,28 @@
   pointer-events: none;
 }
 
+/* 打卡网格的节假日小标记（来源：系统日历实时或内置表） */
+.checkin-month-dot {
+  position: relative;
+}
+
+.checkin-month-holi {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.checkin-day-holiday {
+  height: 11px;
+  font-size: 9px;
+  line-height: 11px;
+}
+
 /* ===== CheckIn Summary ===== */
 .checkin-summary {
   margin-top: 14px;
@@ -1899,40 +1926,6 @@
 
 .checkin-summary-input::placeholder {
   color: var(--text-muted);
-}
-
-/* ===== Task Move Buttons ===== */
-.task-move-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  flex-shrink: 0;
-  margin-right: 6px;
-}
-
-.task-move-btn {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  line-height: 1;
-  transition: all 0.15s;
-}
-
-.task-move-btn:active:not(:disabled) {
-  background: var(--primary-light);
-  color: var(--primary-dark);
-}
-
-.task-move-btn:disabled {
-  opacity: 0.2;
 }
 
 /* ===== Tips ===== */

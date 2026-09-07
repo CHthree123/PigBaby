@@ -137,3 +137,10 @@
   background: rgba(110, 231, 240, 0.14);
   color: #6EE7F0;
 }
+
+.profile-row-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 6px 2px 0;
+}

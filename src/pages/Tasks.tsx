@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Task, TasksData, DateNote, CheckInData, CheckInRecord } from '../storage';
 import { loadTasks, saveTasks, loadDateNotes, saveDateNotes, loadCheckIn, saveCheckIn } from '../storage';
@@ -8,7 +8,8 @@ import CheckIn from '../components/CheckIn';
 import Tips from '../components/Tips';
 import Projects from '../components/Project';
 import EmptyState from '../components/EmptyState';
-import { getHoliday, getHolidayDates } from '../holidays';
+import { getHoliday } from '../holidays';
+import { getSysHolidaysForMonths, type SysHoliday } from '../sysCalendar';
 import { ensureNotificationPermission, resyncReminders, scheduleTaskReminder, openExactAlarmSettings, type ReminderScheduleResult } from '../notifications';
 
 // After setting a reminder, tell the user what happened instead of failing silently
@@ -115,6 +116,21 @@ export default function Tasks() {
   const [noteInput, setNoteInput] = useState('');
   const [editingNoteDate, setEditingNoteDate] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  // Holidays fetched from the phone's system calendar (only when enabled +
+  // granted in Profile; falls back to the built-in table otherwise)
+  const [sysHolidays, setSysHolidays] = useState<Map<string, SysHoliday>>(new Map());
+
+  // ---- 长按 1.5s 拖拽排序 ----
+  const [dragItems, setDragItems] = useState<TaskViewItem[] | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragY, setDragY] = useState(0); // 被拖行的 translateY
+  const dragItemsRef = useRef<TaskViewItem[]>([]);
+  const baseListRef = useRef<TaskViewItem[]>([]);
+  const dragCtl = useRef<{ active: boolean; id: string; grabOffset: number } | null>(null);
+  const holdCtl = useRef<{ id: string; x: number; y: number; items: TaskViewItem[]; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const suppressClick = useRef(false);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   // 7-day strip around the current week (Mon-Sun), shiftable with the arrows
   const weekDays = useMemo(() => {
@@ -230,8 +246,11 @@ export default function Tasks() {
     return set;
   }, [tasks]);
 
-  const holidayDates = useMemo(() => getHolidayDates(), []);
-  const selectedHoliday = useMemo(() => getHoliday(selectedDate), [selectedDate]);
+  // System-calendar holidays win; anything else falls back to the built-in table
+  const selectedHoliday = useMemo(
+    () => sysHolidays.get(selectedDate) ?? getHoliday(selectedDate),
+    [sysHolidays, selectedDate]
+  );
 
   const noteDates = useMemo(() => {
     const set = new Set<string>();
@@ -273,6 +292,34 @@ export default function Tasks() {
     if (calMonth === 12) { setCalMonth(1); setCalYear(calYear + 1); }
     else setCalMonth(calMonth + 1);
   };
+
+  // Fetch system-calendar holidays for every month visible on screen (the
+  // calendar grid may show parts of the adjacent months too)
+  const sysMonthsKey = useMemo(() => {
+    const keys = new Set([`${calYear}-${String(calMonth).padStart(2, '0')}`]);
+    const lead = getFirstDayOfWeek(calYear, calMonth);
+    const rem = 42 - (lead + daysInMonth(calYear, calMonth));
+    if (lead > 0) {
+      const y = calMonth === 1 ? calYear - 1 : calYear;
+      const m = calMonth === 1 ? 12 : calMonth - 1;
+      keys.add(`${y}-${String(m).padStart(2, '0')}`);
+    }
+    if (rem > 0) {
+      const y = calMonth === 12 ? calYear + 1 : calYear;
+      const m = calMonth === 12 ? 1 : calMonth + 1;
+      keys.add(`${y}-${String(m).padStart(2, '0')}`);
+    }
+    for (const d of weekDays) keys.add(d.dateStr.slice(0, 7));
+    keys.add(selectedDate.slice(0, 7));
+    return [...keys].sort().join(',');
+  }, [calYear, calMonth, weekDays, selectedDate]);
+
+  useEffect(() => {
+    let alive = true;
+    const months = sysMonthsKey.split(',').filter(Boolean);
+    getSysHolidaysForMonths(months).then((m) => { if (alive) setSysHolidays(m); });
+    return () => { alive = false; };
+  }, [sysMonthsKey]);
 
   // ---- Undo ----
   const showUndo = (taskId: string, content: string, text = '✅ 任务已完成') => {
@@ -447,35 +494,23 @@ export default function Tasks() {
     showUndo(`checkin-${goalId}`, goal.name, '✅ 打卡已放弃');
   };
 
-  // Reorder a list of task items (real tasks + check-in goals) by reassigning
-  // order 0..n-1; only touches `order`, never date/completed, so rolled tasks
-  // keep their overdue status. Real task orders go back to Tasks storage,
-  // check-in goal orders back to CheckIn storage (same numeric space).
-  const reorderList = async (list: TaskViewItem[], taskId: string, direction: 'up' | 'down') => {
-    const idx = list.findIndex((t) => t.id === taskId);
-    if (idx === -1) return;
-    if (direction === 'up' && idx === 0) return;
-    if (direction === 'down' && idx === list.length - 1) return;
-
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
-
+  // Reassign order 0..n-1 to a whole list (real tasks + check-in goals), only
+  // touching `order`. Real task orders go to Tasks storage, check-in goal
+  // orders to CheckIn storage (shared numeric space, so drag works across
+  // rolled tasks, today's tasks and check-in goals in one sequence).
+  const persistListOrder = async (list: TaskViewItem[]) => {
     const taskOrderById: Record<string, number> = {};
     const checkinOrders: Record<string, number> = {};
     list.forEach((t, i) => {
       if (t.isCheckin) checkinOrders[t.goalId!] = i;
       else taskOrderById[t.id] = i;
     });
-
     const updatedTasks = tasks.map((t) => {
-      const newIdx = taskOrderById[t.id];
-      if (newIdx !== undefined) return { ...t, order: newIdx };
-      return t;
+      const n = taskOrderById[t.id];
+      return n !== undefined ? { ...t, order: n } : t;
     });
-
     await saveTasks({ tasks: updatedTasks });
     setTasks(updatedTasks);
-
     const goalIds = Object.keys(checkinOrders);
     if (goalIds.length > 0) {
       const updatedGoals = checkinData.goals.map((g) =>
@@ -486,10 +521,157 @@ export default function Tasks() {
       setCheckinData(newData);
     }
   };
+  // keep the latest closure available to the (stable) drag listeners
+  const persistRef = useRef(persistListOrder);
+  persistRef.current = persistListOrder;
 
-  // Moves apply across the whole merged list (rolled + today) on today's view
-  const handleMoveTask = (taskId: string, direction: 'up' | 'down') => {
-    void reorderList([...todayViewTasks], taskId, direction);
+  // ---- 长按拖拽排序 ----
+  const DRAG_HOLD_MS = 1500;
+
+  const clearHold = () => {
+    if (holdCtl.current?.timer) clearTimeout(holdCtl.current.timer);
+    holdCtl.current = null;
+    window.removeEventListener('pointermove', handlePreDragMove);
+    window.removeEventListener('pointerup', handlePreDragEnd);
+    window.removeEventListener('pointercancel', handlePreDragEnd);
+  };
+
+  const onDragEnd = () => {
+    const ctl = dragCtl.current;
+    if (!ctl?.active) return;
+    ctl.active = false;
+    dragCtl.current = null;
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    document.body.style.overflow = '';
+    suppressClick.current = true;
+    setTimeout(() => { suppressClick.current = false; }, 250);
+    const finalList = dragItemsRef.current;
+    const base = baseListRef.current;
+    const changed = finalList.length !== base.length || finalList.some((it, i) => it.id !== base[i]?.id);
+    setDragId(null);
+    setDragItems(null);
+    setDragY(0);
+    if (changed) void persistRef.current(finalList);
+  };
+
+  const onDragMove = (e: PointerEvent) => {
+    const ctl = dragCtl.current;
+    if (!ctl?.active) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-task-id="${ctl.id}"]`);
+    if (!el) { onDragEnd(); return; }
+    // 拖到屏幕上下边缘自动滚动列表
+    const edge = 60;
+    if (e.clientY < edge) window.scrollBy(0, -12);
+    else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, 12);
+
+    // 让被拖行的视觉位置跟手：rect 已含当前 translateY，补差即可
+    const rect = el.getBoundingClientRect();
+    setDragY((v) => v + (e.clientY - ctl.grabOffset - rect.top));
+
+    const order = dragItemsRef.current;
+    const cur = order.findIndex((it) => it.id === ctl.id);
+    if (cur === -1) return;
+    const rows = listRef.current ? Array.from(listRef.current.querySelectorAll<HTMLElement>('[data-task-id]')) : [];
+    let target = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (i === cur) continue;
+      const rc = rows[i].getBoundingClientRect();
+      if (e.clientY > rc.top + rc.height / 2) target++;
+    }
+    if (target === cur) return;
+
+    const curTop = rows[cur].getBoundingClientRect().top;
+    const dragH = rows[cur].getBoundingClientRect().height;
+    const targetTop = rows[target].getBoundingClientRect().top;
+    // 下移时新位顶面 = 目标行原顶 -（被拖行高度+行缝）；上移直接落到目标行顶
+    const gapUnder = cur + 1 < rows.length
+      ? rows[cur + 1].getBoundingClientRect().top - (curTop + dragH)
+      : 0;
+    const layoutDelta = target < cur
+      ? targetTop - curTop
+      : targetTop - curTop - (dragH + Math.max(0, gapUnder));
+
+    const next = [...order];
+    const [moved] = next.splice(cur, 1);
+    next.splice(target, 0, moved);
+    dragItemsRef.current = next;
+    setDragItems(next);
+    setDragY((v) => v - layoutDelta);
+  };
+
+  const activateDrag = (hold: NonNullable<typeof holdCtl.current>) => {
+    if (dragCtl.current?.active) return;
+    if (hold.items.length < 2) return;
+    if (!hold.items.some((it) => it.id === hold.id)) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-task-id="${hold.id}"]`);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    clearHold();
+    const items = [...hold.items];
+    dragItemsRef.current = items;
+    baseListRef.current = items;
+    dragCtl.current = { active: true, id: hold.id, grabOffset: hold.y - rect.top };
+    setDragItems(items);
+    setDragId(hold.id);
+    setDragY(0);
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+    try { navigator.vibrate?.(10); } catch { /* 震动不可用时忽略 */ }
+  };
+
+  const handleRowPointerDown = (e: RPointerEvent, id: string) => {
+    if (selectedDate !== today) return;
+    if (dragCtl.current?.active || holdCtl.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const items = dragItems ?? todayViewTasks;
+    if (!items.some((it) => it.id === id)) return;
+    holdCtl.current = {
+      id,
+      x: e.clientX,
+      y: e.clientY,
+      items,
+      timer: setTimeout(() => {
+        const hold = holdCtl.current;
+        if (hold && hold.id === id) activateDrag(hold);
+      }, DRAG_HOLD_MS),
+    };
+    // 手指/鼠标移到行外或提前松开时也要能取消（指针可能未捕获在行上）
+    window.addEventListener('pointermove', handlePreDragMove);
+    window.addEventListener('pointerup', handlePreDragEnd);
+    window.addEventListener('pointercancel', handlePreDragEnd);
+  };
+
+  const handlePreDragMove = (e: PointerEvent) => {
+    const h = holdCtl.current;
+    if (!h) return;
+    if (Math.abs(e.clientX - h.x) > 10 || Math.abs(e.clientY - h.y) > 10) clearHold();
+  };
+
+  const handlePreDragEnd = () => clearHold();
+
+  const handleRowPointerMove = (e: RPointerEvent) => {
+    const h = holdCtl.current;
+    if (!h) return;
+    // 按住期间手指大幅移动 → 视为滚动页面，取消待触发拖拽
+    if (Math.abs(e.clientX - h.x) > 10 || Math.abs(e.clientY - h.y) > 10) clearHold();
+  };
+
+  const handleRowPointerEnd = () => clearHold();
+
+  const handleRowClick = (e: RMouseEvent, task: TaskViewItem) => {
+    if (suppressClick.current) return;
+    const act = (e.target as HTMLElement).closest('[data-act]')?.getAttribute('data-act');
+    if (act === 'toggle') {
+      void handleToggleComplete(task.id);
+    } else if (act === 'quit') {
+      if (task.isCheckin && !task.completed) void handleQuitCheckin(task.goalId!);
+    } else if (!task.isCheckin) {
+      setEditingTask(task);
+    }
   };
 
   const formatCompletedTime = (iso: string | null) => {
@@ -521,8 +703,8 @@ export default function Tasks() {
             </div>
             <div className="mini-cal-grid">
               {calendarDays.map(({ day, month, dateStr }) => {
-                const isHoliday = holidayDates.has(dateStr);
-                const holiday = getHoliday(dateStr);
+                const holiday = sysHolidays.get(dateStr) ?? getHoliday(dateStr);
+                const isHoliday = !!holiday;
                 const hasTask = taskDates.has(dateStr);
                 const hasNote = noteDates.has(dateStr);
                 return (
@@ -668,7 +850,7 @@ export default function Tasks() {
           <button className="week-strip-nav" onClick={() => setWeekOffset((w) => w - 1)}>‹</button>
           <div className="week-strip-days">
             {weekDays.map(({ dateStr, day, isToday }) => {
-              const holiday = getHoliday(dateStr);
+              const holiday = sysHolidays.get(dateStr) ?? getHoliday(dateStr);
               const hasTask = taskDates.has(dateStr);
               const hasNote = noteDates.has(dateStr);
               return (
@@ -739,35 +921,49 @@ export default function Tasks() {
           <EmptyState emoji="📋" title="📋 这天没有任务~" />
         ) : (
           <>
-            {/* One unified sequence: rolled past tasks (with date badge) + today's tasks + check-in goals */}
+            {/* One unified sequence: rolled past tasks (with date badge) + today's tasks + check-in goals.
+                Hold a row ~1.5 s to drag-sort; taps still toggle/edit/give up. */}
             {todayViewTasks.length > 0 && (
-              <div className="task-list">
-                {todayViewTasks.map((task, idx) => (
-                  <div key={task.id} className="task-item">
-                    <div className="task-move-btns">
-                      <button className="task-move-btn" disabled={idx === 0} onClick={() => handleMoveTask(task.id, 'up')}>▲</button>
-                      <button className="task-move-btn" disabled={idx === todayViewTasks.length - 1} onClick={() => handleMoveTask(task.id, 'down')}>▼</button>
-                    </div>
+              <div
+                className="task-list"
+                ref={listRef}
+                onContextMenu={(e) => e.preventDefault()}
+              >
+                {(dragItems ?? todayViewTasks).map((task) => {
+                  const isDragRow = dragId === task.id;
+                  const dragProps = selectedDate === today ? {
+                    onPointerDown: (e: RPointerEvent) => handleRowPointerDown(e, task.id),
+                    onPointerMove: handleRowPointerMove,
+                    onPointerUp: handleRowPointerEnd,
+                    onPointerCancel: handleRowPointerEnd,
+                  } : {};
+                  return (
                     <div
-                      className="task-checkbox"
-                      onClick={() => handleToggleComplete(task.id)}
-                    />
-                    <div className="task-content" onClick={() => { if (!task.isCheckin) setEditingTask(task); }}>
-                      {task.isCheckin && <span className="checkin-task-badge">打卡</span>}
-                      {task.content}
-                      {!task.isCheckin && task.date < today && <span className="task-rolled-date">{task.date.slice(5)}</span>}
-                      {!task.isCheckin && <ReminderBadge reminder={task.reminder} />}
+                      key={task.id}
+                      data-task-id={task.id}
+                      className={`task-item ${isDragRow ? 'dragging' : ''}`}
+                      style={isDragRow ? { '--drag-y': `${dragY}px` } as CSSProperties : undefined}
+                      onClick={(e) => handleRowClick(e, task)}
+                      {...dragProps}
+                    >
+                      <div className="task-checkbox" data-act="toggle" />
+                      <div className="task-content">
+                        {task.isCheckin && <span className="checkin-task-badge">打卡</span>}
+                        {task.content}
+                        {!task.isCheckin && task.date < today && <span className="task-rolled-date">{task.date.slice(5)}</span>}
+                        {!task.isCheckin && <ReminderBadge reminder={task.reminder} />}
+                      </div>
+                      {task.isCheckin && !task.completed && (
+                        <button
+                          className="task-quit-btn"
+                          data-act="quit"
+                        >
+                          放弃
+                        </button>
+                      )}
                     </div>
-                    {task.isCheckin && !task.completed && (
-                      <button
-                        className="task-quit-btn"
-                        onClick={() => handleQuitCheckin(task.goalId!)}
-                      >
-                        放弃
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -778,10 +974,9 @@ export default function Tasks() {
                 <div className="task-list">
                   {completedViewItems.map((task) => (
                     <div key={task.id} className="task-item completed">
-                      <div style={{ width: 32, flexShrink: 0 }} />
                       <div
                         className="task-checkbox checked"
-                        onClick={() => handleToggleComplete(task.id)}
+                        onClick={() => { if (!suppressClick.current) void handleToggleComplete(task.id); }}
                       >✓</div>
                       <div className="task-content done" onClick={() => { if (!task.isCheckin) setEditingTask(task); }}>
                         {task.isCheckin && <span className="checkin-task-badge">打卡</span>}
@@ -811,7 +1006,7 @@ export default function Tasks() {
             <div className="future-list">
               {futureTaskDates.map((date) => {
                 const dateTasks = futureTasksByDate[date] ?? [];
-                const holiday = getHoliday(date);
+                const holiday = sysHolidays.get(date) ?? getHoliday(date);
                 if (dateTasks.length === 0) return null;
 
                 return (
