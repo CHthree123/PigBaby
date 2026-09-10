@@ -304,3 +304,14 @@ PigBaby 开发记录 · 2026-08-27（深色会话摘录）
    未生成草稿时给出原因（未识别金额/方向），供真机校准正则
 6. 说明：通知使用权只能由用户在系统设置中手动授予（代码无法申请）；
    本版安装后需真机做一笔小额支付来校准解析规则
+
+【v1.8.0 修复】插件注册时机（versionCode 22，未推送）：
+1. 真机反馈"自动捕捉插件在安卓不被允许"（插件未实现错误）
+2. 根因：Capacitor 8 的 Bridge 在 BridgeActivity.super.onCreate() 内部创建
+   并一次性注册插件列表，MainActivity 在 super.onCreate() 之后再调用
+   registerPlugin() 不会生效。参见 Bridge.java：create() → 构造函数内
+   registerAllPlugins() 遍历的是创建时的列表快照
+3. 顺带发现：短信的 SmsReaderPlugin 一直以同样方式注册，实际从未生效
+   （此前"点击授权短信直接失败、无弹窗"的症状正是插件未注册的表现，
+   当时的权限流程改造没有解决根因）
+4. 修复：两个本地插件改到 super.onCreate() 之前注册

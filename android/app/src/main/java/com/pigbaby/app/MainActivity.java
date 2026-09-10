@@ -14,14 +14,17 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    // 本地插件必须在 super.onCreate() 之前注册：Bridge 在 super.onCreate()
+    // 内部创建并注册插件列表，之后再 registerPlugin 不会生效
+    registerPlugin(SmsReaderPlugin.class);
+    registerPlugin(AutoCapturePlugin.class);
+
     super.onCreate(savedInstanceState);
 
     // Disable WebView cache during development so updates always load fresh
     WebView webView = getBridge().getWebView();
     webView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
 
-    registerPlugin(SmsReaderPlugin.class);
-    registerPlugin(AutoCapturePlugin.class);
     createReminderChannel();
   }
 
