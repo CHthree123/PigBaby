@@ -77,6 +77,18 @@ export default function CaptureDebug() {
         {loading ? '读取中…' : '刷新'}
       </button>
 
+      {rows.length > 0 && (
+        <button
+          className="cd-refresh"
+          onClick={async () => {
+            await AutoCapture.clearCaptured({ ids: rows.map((r) => r.capture.id) });
+            setRows([]);
+          }}
+        >
+          清空捕获（不影响已入账记录）
+        </button>
+      )}
+
       {error && <div className="cd-error">{error}</div>}
 
       {!loading && !error && rows.length === 0 && (
@@ -92,10 +104,19 @@ export default function CaptureDebug() {
             {recorded && <span className="cd-badge done">已入账</span>}
           </div>
           <div className="cd-raw">
-            {capture.title && <div>标题：{capture.title}</div>}
-            {capture.text && <div>正文：{capture.text}</div>}
-            {capture.bigText && capture.bigText !== capture.text && <div>大文本：{capture.bigText}</div>}
-            {capture.subText && <div>副文本：{capture.subText}</div>}
+            {([
+              ['标题', capture.title],
+              ['正文', capture.text],
+              ['大文本', capture.bigText],
+              ['副文本', capture.subText],
+              ['摘要', capture.summaryText],
+              ['信息', capture.infoText],
+              ['大标题', capture.titleBig],
+              ['会话', capture.conversationTitle],
+              ['其他', capture.extraText],
+            ] as [string, string | undefined][])
+              .filter(([, v]) => !!v && !!v.trim())
+              .map(([label, v]) => <div key={label}>{label}：{v}</div>)}
           </div>
           {result.ok && result.parsed ? (
             <div className="cd-parse ok">

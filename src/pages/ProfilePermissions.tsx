@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import SmsAutoPanel from '../components/SmsAutoPanel';
 import { AutoCapture, syncCaptures, isNativeCapture } from '../autoCapture';
 import {
   sysCalendarAvailable,
@@ -152,9 +151,6 @@ export default function ProfilePermissions() {
             需在个人中心打开总开关后生效。
           </div>
           {syncStatus && <div className="sms-auto-status">{syncStatus}</div>}
-        </div>
-        <div className="profile-card">
-          <SmsAutoPanel />
         </div>
         <div className="profile-card">
           <div className="profile-row">

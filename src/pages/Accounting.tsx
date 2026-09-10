@@ -7,7 +7,6 @@ import TagStats from '../components/TagStats';
 import PiggyBank from '../components/PiggyBank';
 import EmptyState from '../components/EmptyState';
 import AnimatedNumber from '../components/AnimatedNumber';
-import SmsAutoSync from '../components/SmsAutoSync';
 import AutoCaptureSync from '../components/AutoCaptureSync';
 import './Accounting.css';
 
@@ -286,16 +285,6 @@ export default function Accounting() {
     await refresh();
   };
 
-  const handleSmsImported = async (transactions: Transaction[], added: number) => {
-    if (added === 0) return;
-    const updated: AppData = {
-      ...data,
-      records: [...data.records, ...transactions],
-    };
-    await saveData(updated);
-    await refresh();
-  };
-
   // Common wrapper with sub-nav always visible
   return (
     <div className="accounting-page">
@@ -306,11 +295,6 @@ export default function Accounting() {
         <button className={`ac-subnav-btn ${view === 'tags' ? 'active' : ''}`} onClick={() => switchView('tags')}>标签统计</button>
         <button className={`ac-subnav-btn ${view === 'piggybank' ? 'active' : ''}`} onClick={() => switchView('piggybank')}>存钱罐</button>
       </div>
-
-      <SmsAutoSync
-        records={data.records}
-        onImported={handleSmsImported}
-      />
 
       <AutoCaptureSync onRefresh={refresh} />
 

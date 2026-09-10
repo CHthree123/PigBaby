@@ -16,7 +16,6 @@ public class MainActivity extends BridgeActivity {
   protected void onCreate(Bundle savedInstanceState) {
     // 本地插件必须在 super.onCreate() 之前注册：Bridge 在 super.onCreate()
     // 内部创建并注册插件列表，之后再 registerPlugin 不会生效
-    registerPlugin(SmsReaderPlugin.class);
     registerPlugin(AutoCapturePlugin.class);
 
     super.onCreate(savedInstanceState);

@@ -9,7 +9,7 @@ import {
   type PendingCapture,
   type Transaction,
 } from './storage';
-import { guessTagByText, guessIncomeTagByText } from './smsAuto';
+import { guessTagByText, guessIncomeTagByText } from './tagRules';
 import { MemoryEngine } from './tagMemory';
 
 // 自动记账（通知监听）：采集层在 Android 原生，解析/打标/去重在 JS，
@@ -23,6 +23,11 @@ export interface RawCapture {
   text: string;
   bigText: string;
   subText: string;
+  summaryText?: string;
+  infoText?: string;
+  titleBig?: string;
+  conversationTitle?: string;
+  extraText?: string;   // 兜底收集的其他文本（多行样式/自定义模板），分隔符 ⏎
   when: number;     // ms
 }
 
@@ -49,7 +54,7 @@ export interface ParseResult {
 // 来源词干扰方向判断（"微信支付"里含"支付"），先剔除
 const SOURCE_WORDS = ['微信收款助手', '微信支付', '微信', '支付宝'];
 
-const EXPENSE_WORDS = ['支付成功', '付款成功', '支付', '付款', '已付', '支出', '消费', '扣款', '转出', '扣除', '已扣'];
+const EXPENSE_WORDS = ['支付成功', '付款成功', '支付', '付款', '已付', '支出', '消费', '扣款', '扣费', '转出', '扣除', '已扣'];
 const INCOME_WORDS = ['收款到账', '收款', '到账', '收入', '收到', '入账', '转入', '退款', '退回'];
 
 function stripSources(s: string): string {
@@ -121,15 +126,36 @@ function pickTag(
   return tagNames.values().next().value || '其他';
 }
 
+// 汇总通知里所有可用文本（去重），解析与调试展示都用它
+export function captureText(c: RawCapture): string {
+  const parts: string[] = [];
+  const seen = new Set<string>();
+  const push = (s?: string) => {
+    for (const seg of (s || '').split('⏎')) {
+      const t = seg.trim();
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      parts.push(t);
+    }
+  };
+  push(c.title);
+  push(c.text);
+  push(c.bigText);
+  push(c.subText);
+  push(c.summaryText);
+  push(c.infoText);
+  push(c.titleBig);
+  push(c.conversationTitle);
+  push(c.extraText);
+  return parts.join(' ');
+}
+
 export function parseCapture(
   c: RawCapture,
   tagNames: Set<string>,
   engine: MemoryEngine
 ): ParseResult {
-  const combined = [c.title, c.text, c.bigText, c.subText]
-    .map((s) => (s || '').trim())
-    .filter(Boolean)
-    .join(' ');
+  const combined = captureText(c);
   if (!combined) return { ok: false, reason: '通知无文本' };
   const body = stripSources(combined);
   const amount = extractAmount(combined);
@@ -224,12 +250,13 @@ export async function syncCaptures(): Promise<SyncResult> {
   let idx = 0;
 
   for (const c of captures) {
-    ids.push(c.id);
     const r = parseCapture(c, tagNames, engine);
     if (!r.ok || !r.parsed) {
+      // 解析失败的保留在队列里，「最近捕获」页可见，便于校准规则
       result.skipped++;
       continue;
     }
+    ids.push(c.id);
     if (isDuplicateCapture(r.parsed, data.records, [...pending, ...newDrafts])) {
       result.skipped++;
       continue;

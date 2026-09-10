@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function Profile() {
           <span className="profile-entry-icon">🔐</span>
           <span className="profile-entry-body">
             <span className="profile-entry-title">权限设置</span>
-            <span className="profile-entry-sub">通知 · 精确闹钟 · 短信记账 · 日历同步</span>
+            <span className="profile-entry-sub">通知 · 精确闹钟 · 自动记账 · 日历同步</span>
           </span>
           <span className="profile-entry-arrow">›</span>
         </button>

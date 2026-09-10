@@ -315,3 +315,18 @@ PigBaby 开发记录 · 2026-08-27（深色会话摘录）
    （此前"点击授权短信直接失败、无弹窗"的症状正是插件未注册的表现，
    当时的权限流程改造没有解决根因）
 4. 修复：两个本地插件改到 super.onCreate() 之前注册
+
+【追加更新】v1.8.1 移除短信自动记账 + 补全通知文本采集（未推送）：
+1. 按需求移除短信自动记账：删除前端 SmsAutoPanel/SmsAutoSync/smsAuto.ts
+   与原生 SmsReceiver/SmsParser/SmsStore/SmsReaderPlugin；Manifest 移除
+   短信接收器与 RECEIVE_SMS/READ_SMS 权限；MainActivity 去掉注册。
+   标签关键词规则表迁至 src/tagRules.ts 供自动记账使用
+2. 真机反馈"抓到了但不完整"（如"已扣费¥12.88"能解析，"退款到账通知"
+   因正文无金额而失败）。原生采集扩展为读取通知里的全部文本：
+   新增 summary/info/titleBig/conversationTitle，并兜底收集 extras 里
+   其他所有 CharSequence（含多行样式 textLines），去重、限长（每段 160、
+   总计 800 字）；解析与调试页改用全部文本拼接
+3. 微信普通聊天通知预筛：不含金额/支付/到账等账单关键词的通知直接丢弃，
+   避免队列与调试页被无关消息淹没（宁可多留、不可漏抓）
+4. 「最近捕获」页：解析失败的原文不再被清除，保留供校准；新增"清空捕获"
+   按钮；展示全部文本字段

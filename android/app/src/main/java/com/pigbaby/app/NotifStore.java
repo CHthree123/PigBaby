@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import com.getcapacitor.JSArray;
+import com.getcapacitor.JSObject;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,19 +28,21 @@ public class NotifStore {
 
     private static long seq = 0;
 
-    public static synchronized void add(Context context, String pkg, String title, String text,
-                                        String bigText, String subText, long when) {
+    private static final String[] TEXT_FIELDS = {
+            "pkg", "app", "title", "text", "bigText", "subText",
+            "summaryText", "infoText", "titleBig", "conversationTitle", "extraText"
+    };
+
+    public static synchronized void add(Context context, JSObject data) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         JSONArray arr = read(prefs);
+        long when = data.optLong("when", System.currentTimeMillis());
         try {
             JSONObject o = new JSONObject();
             o.put("id", when + "-" + (seq++));
-            o.put("pkg", pkg);
-            o.put("app", "com.tencent.mm".equals(pkg) ? "微信" : "支付宝");
-            o.put("title", title);
-            o.put("text", text);
-            o.put("bigText", bigText);
-            o.put("subText", subText);
+            for (String key : TEXT_FIELDS) {
+                o.put(key, data.optString(key, ""));
+            }
             o.put("when", when);
             arr.put(o);
         } catch (JSONException ignored) {
