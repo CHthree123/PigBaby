@@ -1,7 +1,9 @@
 package com.pigbaby.app;
 
 import android.app.Notification;
+import android.app.Person;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -38,6 +40,8 @@ public class PigNotificationListener extends NotificationListenerService {
 
     private static final int MAX_PART_LEN = 160;
     private static final int MAX_EXTRA_LEN = 800;
+    private static final int MAX_DUMP_LEN = 1600;
+    private static final int MAX_DEPTH = 3;
 
     // 账单类关键词预筛：微信里大量普通聊天通知不含任何上述字样，直接丢弃，
     // 避免队列与调试页被无关消息淹没（宁可多留，不可漏抓）
@@ -46,8 +50,7 @@ public class PigNotificationListener extends NotificationListenerService {
             "消费", "账单", "支付", "余额", "红包", "付款"
     };
 
-    private static boolean looksLikeFinance(String title, String text, String big) {
-        String all = title + " " + text + " " + big;
+    private static boolean looksLikeFinance(String all) {
         for (String hint : FINANCE_HINTS) {
             if (all.contains(hint)) return true;
         }
@@ -63,14 +66,13 @@ public class PigNotificationListener extends NotificationListenerService {
         if (n == null) return;
         Bundle extras = n.extras;
         if (extras == null) return;
-        // 群组摘要通知不含明细，跳过
-        if ((n.flags & Notification.FLAG_GROUP_SUMMARY) != 0) return;
 
         String title = str(extras.getCharSequence(Notification.EXTRA_TITLE));
         String text = str(extras.getCharSequence(Notification.EXTRA_TEXT));
         String big = str(extras.getCharSequence(Notification.EXTRA_BIG_TEXT));
-        if (title.isEmpty() && text.isEmpty() && big.isEmpty()) return;
-        if (!looksLikeFinance(title, text, big)) return;
+        String ticker = sbn.getNotification().tickerText == null ? "" : sbn.getNotification().tickerText.toString();
+        if (title.isEmpty() && text.isEmpty() && big.isEmpty() && ticker.isEmpty()) return;
+        if (!looksLikeFinance(title + " " + text + " " + big + " " + ticker)) return;
 
         JSObject o = new JSObject();
         o.put("pkg", pkg);
@@ -83,7 +85,9 @@ public class PigNotificationListener extends NotificationListenerService {
         o.put("infoText", str(extras.getCharSequence(Notification.EXTRA_INFO_TEXT)));
         o.put("titleBig", str(extras.getCharSequence(Notification.EXTRA_TITLE_BIG)));
         o.put("conversationTitle", str(extras.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)));
-        o.put("extraText", collectExtraText(extras));
+        o.put("ticker", ticker);
+        o.put("extraText", collectExtraText(extras, 0));
+        o.put("rawDump", dumpExtras(extras, 0));
         o.put("when", sbn.getPostTime() > 0 ? sbn.getPostTime() : System.currentTimeMillis());
 
         NotifStore.add(this, o);
@@ -94,34 +98,111 @@ public class PigNotificationListener extends NotificationListenerService {
     }
 
     /**
-     * 兜底：收集 extras 中其他所有文本（多行样式 textLines、厂商/应用自定义模板等），
-     * 每段截断 160 字、总计 800 字、段间去重；跳过样式模板类名等噪音。
+     * 收集 extras 里其他所有文本（值，不含键），供解析使用：
+     * 含多行样式 textLines、MessageStyle 的嵌套消息体（Bundle 内的 text/sender）、
+     * 发送人姓名等；每段截断 160 字、总计 800 字、去重。
      */
-    private static String collectExtraText(Bundle extras) {
+    private static String collectExtraText(Bundle extras, int depth) {
         StringBuilder sb = new StringBuilder();
         for (String key : extras.keySet()) {
             if (HANDLED_KEYS.contains(key) || Notification.EXTRA_TEMPLATE.equals(key)) continue;
-            Object v = extras.get(key);
-            if (v instanceof CharSequence) {
-                appendPart(sb, v.toString());
-            } else if (v instanceof Iterable) {
-                for (Object item : (Iterable<?>) v) {
-                    if (item instanceof CharSequence) appendPart(sb, item.toString());
-                }
-            }
+            collectValue(sb, extras.get(key), depth);
             if (sb.length() >= MAX_EXTRA_LEN) break;
         }
         return sb.toString();
     }
 
+    private static void collectValue(StringBuilder sb, Object v, int depth) {
+        if (v == null || depth > MAX_DEPTH) return;
+        if (v instanceof CharSequence) {
+            appendPart(sb, v.toString());
+        } else if (v instanceof Bundle) {
+            Bundle b = (Bundle) v;
+            for (String k : b.keySet()) {
+                collectValue(sb, b.get(k), depth + 1);
+            }
+        } else if (v instanceof Iterable) {
+            for (Object item : (Iterable<?>) v) {
+                collectValue(sb, item, depth + 1);
+            }
+        } else if (Build.VERSION.SDK_INT >= 28 && v instanceof Person) {
+            Person p = (Person) v;
+            if (p.getName() != null) appendPart(sb, p.getName().toString());
+        }
+    }
+
+    /** 原始转储（key=value，仅调试页展示，不参与解析） */
+    private static String dumpExtras(Bundle extras, int depth) {
+        StringBuilder sb = new StringBuilder();
+        for (String key : extras.keySet()) {
+            dumpEntry(sb, key, extras.get(key), depth);
+            if (sb.length() >= MAX_DUMP_LEN) break;
+        }
+        return sb.toString();
+    }
+
+    private static void dumpEntry(StringBuilder sb, String key, Object v, int depth) {
+        if (v == null || depth > MAX_DEPTH) return;
+        if (v instanceof CharSequence) {
+            appendDump(sb, key + "=" + v);
+        } else if (v instanceof Bundle) {
+            Bundle b = (Bundle) v;
+            StringBuilder inner = new StringBuilder();
+            for (String k : b.keySet()) {
+                Object iv = b.get(k);
+                if (iv instanceof CharSequence) {
+                    inner.append(k).append("=").append(iv).append("; ");
+                } else if (Build.VERSION.SDK_INT >= 28 && iv instanceof Person && ((Person) iv).getName() != null) {
+                    inner.append(k).append("=Person(").append(((Person) iv).getName()).append("); ");
+                }
+            }
+            if (inner.length() > 0) appendDump(sb, key + "={" + inner + "}");
+        } else if (v instanceof Iterable) {
+            StringBuilder inner = new StringBuilder();
+            for (Object item : (Iterable<?>) v) {
+                if (item instanceof CharSequence) {
+                    inner.append(item).append("; ");
+                } else if (item instanceof Bundle) {
+                    Bundle b = (Bundle) item;
+                    StringBuilder one = new StringBuilder();
+                    for (String k : b.keySet()) {
+                        Object iv = b.get(k);
+                        if (iv instanceof CharSequence) one.append(k).append("=").append(iv).append(" ");
+                        else if (Build.VERSION.SDK_INT >= 28 && iv instanceof Person && ((Person) iv).getName() != null) {
+                            one.append(k).append("=Person(").append(((Person) iv).getName()).append(") ");
+                        }
+                    }
+                    if (one.length() > 0) inner.append("{").append(one).append("}; ");
+                } else if (Build.VERSION.SDK_INT >= 28 && item instanceof Person && ((Person) item).getName() != null) {
+                    inner.append("Person(").append(((Person) item).getName()).append("); ");
+                }
+            }
+            if (inner.length() > 0) appendDump(sb, key + "=[" + inner + "]");
+        }
+    }
+
     private static void appendPart(StringBuilder sb, String s) {
-        if (s == null) return;
-        String t = s.trim();
-        if (t.isEmpty() || t.startsWith("android.") || t.startsWith("com.android.")) return;
-        if (t.length() > MAX_PART_LEN) t = t.substring(0, MAX_PART_LEN);
+        String t = clean(s);
+        if (t == null) return;
         if (sb.indexOf(t) >= 0) return;
         if (sb.length() > 0) sb.append(" ⏎ ");
         sb.append(t);
+    }
+
+    private static void appendDump(StringBuilder sb, String s) {
+        String t = clean(s);
+        if (t == null) return;
+        if (sb.indexOf(t) >= 0) return;
+        if (sb.length() > 0) sb.append(" ⏎ ");
+        sb.append(t);
+    }
+
+    private static String clean(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        if (t.isEmpty() || t.startsWith("android.") || t.startsWith("com.android.")) return null;
+        if (t.length() > MAX_PART_LEN) t = t.substring(0, MAX_PART_LEN);
+        return t;
     }
 
     private static String str(CharSequence cs) {

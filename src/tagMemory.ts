@@ -47,6 +47,8 @@ export class MemoryEngine {
     for (const r of records) {
       const note = norm(r.note);
       if (!note) continue;
+      // 自动记账生成的通用备注（如"微信自动记账"）不含有效信息，跳过以免污染学习
+      if (note.endsWith('自动记账')) continue;
       const tag = r.tag || '其他';
 
       let nt = this.noteToTags.get(note);

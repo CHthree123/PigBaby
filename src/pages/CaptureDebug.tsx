@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AutoCapture, parseCapture, isNativeCapture, type RawCapture, type ParseResult } from '../autoCapture';
-import { loadData, loadTagRegistry, loadPendingCaptures } from '../storage';
+import { AutoCapture, parseCapture, captureText, isNativeCapture, type RawCapture, type ParseResult } from '../autoCapture';
+import { loadData, saveData, loadTagRegistry, loadPendingCaptures } from '../storage';
 import { MemoryEngine } from '../tagMemory';
+import AddRecordModal from '../components/AddRecordModal';
 import './CaptureDebug.css';
 
 interface Row {
@@ -18,11 +19,23 @@ function formatTime(ms: number): string {
   return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+function dateOfMs(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// 未解析成功的条目按文本猜一下收支方向，手动补记时预选
+function guessIncome(capture: RawCapture): boolean {
+  return /退款|到账|收款|收入|退回/.test(captureText(capture));
+}
+
 export default function CaptureDebug() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [manual, setManual] = useState<Row | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -113,10 +126,12 @@ export default function CaptureDebug() {
               ['信息', capture.infoText],
               ['大标题', capture.titleBig],
               ['会话', capture.conversationTitle],
+              ['通知栏', capture.ticker],
               ['其他', capture.extraText],
             ] as [string, string | undefined][])
               .filter(([, v]) => !!v && !!v.trim())
               .map(([label, v]) => <div key={label}>{label}：{v}</div>)}
+            {capture.rawDump && <div className="cd-rawdump">原始字段：{capture.rawDump}</div>}
           </div>
           {result.ok && result.parsed ? (
             <div className="cd-parse ok">
@@ -125,10 +140,33 @@ export default function CaptureDebug() {
               {` · 标签：${result.parsed.tag}`}
             </div>
           ) : (
-            <div className="cd-parse fail">⚠️ 未生成草稿：{result.reason}</div>
+            <>
+              <div className="cd-parse fail">⚠️ 未生成草稿：{result.reason}</div>
+              <button className="cd-manual" onClick={() => setManual({ capture, result, draft, recorded })}>
+                手动补记这一笔
+              </button>
+            </>
           )}
         </div>
       ))}
+
+      {manual && (
+        <AddRecordModal
+          type={guessIncome(manual.capture) ? 'income' : 'expense'}
+          draft
+          prefill={{
+            note: manual.capture.app,
+            date: dateOfMs(manual.capture.when),
+          }}
+          onSave={async (record) => {
+            const data = await loadData();
+            await saveData({ ...data, records: [...data.records, record] });
+            setManual(null);
+            await load();
+          }}
+          onClose={() => setManual(null)}
+        />
+      )}
     </div>
   );
 }

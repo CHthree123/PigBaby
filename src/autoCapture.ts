@@ -27,7 +27,9 @@ export interface RawCapture {
   infoText?: string;
   titleBig?: string;
   conversationTitle?: string;
-  extraText?: string;   // 兜底收集的其他文本（多行样式/自定义模板），分隔符 ⏎
+  ticker?: string;
+  extraText?: string;   // 兜底收集的其他文本（多行样式/嵌套消息体），分隔符 ⏎
+  rawDump?: string;     // 原始 extras 转储（key=value），仅调试页展示
   when: number;     // ms
 }
 
@@ -146,6 +148,7 @@ export function captureText(c: RawCapture): string {
   push(c.infoText);
   push(c.titleBig);
   push(c.conversationTitle);
+  push(c.ticker);
   push(c.extraText);
   return parts.join(' ');
 }

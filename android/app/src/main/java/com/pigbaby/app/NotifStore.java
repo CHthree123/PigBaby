@@ -30,7 +30,8 @@ public class NotifStore {
 
     private static final String[] TEXT_FIELDS = {
             "pkg", "app", "title", "text", "bigText", "subText",
-            "summaryText", "infoText", "titleBig", "conversationTitle", "extraText"
+            "summaryText", "infoText", "titleBig", "conversationTitle",
+            "ticker", "extraText", "rawDump"
     };
 
     public static synchronized void add(Context context, JSObject data) {

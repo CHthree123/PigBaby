@@ -17,6 +17,7 @@ interface Props {
   type: 'income' | 'expense';
   editRecord?: Transaction | null;
   draft?: boolean;              // 自动记账待确认草稿：标题改为确认语气
+  prefill?: { amount?: number; note?: string; date?: string; tag?: string };
   onSave: (record: Transaction) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
@@ -27,12 +28,12 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function AddRecordModal({ type, editRecord, draft, onSave, onDelete, onClose }: Props) {
+export default function AddRecordModal({ type, editRecord, draft, prefill, onSave, onDelete, onClose }: Props) {
   const isEdit = !!editRecord;
-  const [amount, setAmount] = useState(editRecord ? String(editRecord.amount) : '');
-  const [note, setNote] = useState(editRecord?.note ?? '');
-  const [date, setDate] = useState(editRecord?.date ?? todayStr());
-  const [tag, setTag] = useState(editRecord?.tag || '其他');
+  const [amount, setAmount] = useState(editRecord ? String(editRecord.amount) : prefill?.amount ? String(prefill.amount) : '');
+  const [note, setNote] = useState(editRecord?.note ?? prefill?.note ?? '');
+  const [date, setDate] = useState(editRecord?.date ?? prefill?.date ?? todayStr());
+  const [tag, setTag] = useState(editRecord?.tag || prefill?.tag || '其他');
   const [tagDefs, setTagDefs] = useState<TagDef[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customTag, setCustomTag] = useState('');
