@@ -23,7 +23,9 @@ public class NotifStore {
 
     private static final String PREFS = "pigbaby_notif";
     private static final String KEY_ITEMS = "captures";
+    private static final String KEY_SEEN = "seen_sigs";
     private static final int MAX_ITEMS = 300;
+    private static final int MAX_SEEN = 120;
     private static final long MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000;
 
     private static long seq = 0;
@@ -34,8 +36,19 @@ public class NotifStore {
             "ticker", "extraText", "rawDump"
     };
 
-    public static synchronized void add(Context context, JSObject data) {
+    public static synchronized boolean add(Context context, JSObject data) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        // 同一条通知只入库一次（通知栏扫描与实时回调可能重复拿到）
+        String sig = data.optString("pkg", "") + "|" + data.optLong("when", 0) + "|"
+                + data.optString("title", "") + "|" + data.optString("text", "");
+        Set<String> seen = new HashSet<>(prefs.getStringSet(KEY_SEEN, new HashSet<String>()));
+        if (seen.contains(sig)) return false;
+        seen.add(sig);
+        while (seen.size() > MAX_SEEN) {
+            seen.remove(seen.iterator().next());
+        }
+        prefs.edit().putStringSet(KEY_SEEN, seen).commit();
+
         JSONArray arr = read(prefs);
         long when = data.optLong("when", System.currentTimeMillis());
         try {
@@ -60,7 +73,9 @@ public class NotifStore {
             } catch (JSONException ignored) {
             }
         }
-        prefs.edit().putString(KEY_ITEMS, kept.toString()).apply();
+        // commit() 同步落盘：国产 ROM 可能在写入前就杀掉进程，apply() 会丢数据
+        prefs.edit().putString(KEY_ITEMS, kept.toString()).commit();
+        return true;
     }
 
     /** 取出全部捕获（不清除，由 JS 处理完再按 id 确认清除） */
@@ -97,7 +112,7 @@ public class NotifStore {
             } catch (JSONException ignored) {
             }
         }
-        prefs.edit().putString(KEY_ITEMS, kept.toString()).apply();
+        prefs.edit().putString(KEY_ITEMS, kept.toString()).commit();
     }
 
     private static JSONArray read(SharedPreferences prefs) {

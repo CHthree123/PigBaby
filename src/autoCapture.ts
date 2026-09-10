@@ -6,8 +6,10 @@ import {
   loadPendingCaptures,
   savePendingCaptures,
   loadSkipConfirm,
+  appendCaptureLog,
   type PendingCapture,
   type Transaction,
+  type CaptureLogEntry,
 } from './storage';
 import { guessTagByText, guessIncomeTagByText } from './tagRules';
 import { MemoryEngine } from './tagMemory';
@@ -35,7 +37,9 @@ export interface RawCapture {
 
 interface AutoCapturePlugin {
   checkEnabled(): Promise<{ enabled: boolean }>;
+  status(): Promise<{ enabled: boolean; connected: boolean }>;
   openSettings(): Promise<void>;
+  scanActive(): Promise<{ added: number }>;
   pullCaptured(): Promise<{ captures: RawCapture[] }>;
   clearCaptured(options: { ids: string[] }): Promise<void>;
   addListener(
@@ -230,6 +234,13 @@ export async function syncCaptures(): Promise<SyncResult> {
   const result: SyncResult = { total: 0, drafts: 0, posted: 0, skipped: 0 };
   if (!isNativeCapture) return result;
 
+  // 先扫一遍当前通知栏，补抓还在栏里但未被记录的通知（漏单兜底）
+  try {
+    await AutoCapture.scanActive();
+  } catch {
+    // 监听未连接时忽略
+  }
+
   let captures: RawCapture[] = [];
   try {
     const res = await AutoCapture.pullCaptured();
@@ -250,6 +261,16 @@ export async function syncCaptures(): Promise<SyncResult> {
   const ids: string[] = [];
   const newDrafts: PendingCapture[] = [];
   const newRecords: Transaction[] = [];
+  const logEntries: CaptureLogEntry[] = [];
+  const logBase = (c: RawCapture) => ({
+    id: c.id,
+    app: c.app,
+    when: c.when,
+    title: c.title,
+    text: c.text,
+    detail: ((c.extraText || '') + ' ' + (c.rawDump || '')).trim().slice(0, 300),
+    loggedAt: Date.now(),
+  });
   let idx = 0;
 
   for (const c of captures) {
@@ -257,11 +278,13 @@ export async function syncCaptures(): Promise<SyncResult> {
     if (!r.ok || !r.parsed) {
       // 解析失败的保留在队列里，「最近捕获」页可见，便于校准规则
       result.skipped++;
+      logEntries.push({ ...logBase(c), ok: false, reason: r.reason || '未识别', action: 'skipped' });
       continue;
     }
     ids.push(c.id);
     if (isDuplicateCapture(r.parsed, data.records, [...pending, ...newDrafts])) {
       result.skipped++;
+      logEntries.push({ ...logBase(c), ok: true, reason: '与已有记录重复，已跳过', action: 'duplicate' });
       continue;
     }
     if (skipConfirm) {
@@ -277,10 +300,16 @@ export async function syncCaptures(): Promise<SyncResult> {
         tag: r.parsed.tag,
       });
       result.posted++;
+      logEntries.push({ ...logBase(c), ok: true, reason: `直接入账 ¥${r.parsed.amount.toFixed(2)}`, action: 'posted' });
     } else {
       newDrafts.push({ ...r.parsed, createdAt: Date.now() });
       result.drafts++;
+      logEntries.push({ ...logBase(c), ok: true, reason: `生成待确认 ¥${r.parsed.amount.toFixed(2)}`, action: 'draft' });
     }
+  }
+
+  if (logEntries.length > 0) {
+    await appendCaptureLog(logEntries);
   }
 
   if (newRecords.length > 0) {

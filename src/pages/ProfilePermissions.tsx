@@ -20,14 +20,16 @@ export default function ProfilePermissions() {
   const [calSync, setCalSync] = useState<'checking' | 'off' | 'granted' | 'denied'>('checking');
 
   const [notifAccess, setNotifAccess] = useState<boolean | null>(null);
+  const [notifConnected, setNotifConnected] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
   const checkNotifAccess = async () => {
     if (!isNativeCapture) { setNotifAccess(null); return; }
     try {
-      const r = await AutoCapture.checkEnabled();
+      const r = await AutoCapture.status();
       setNotifAccess(r.enabled);
+      setNotifConnected(r.connected);
     } catch {
       setNotifAccess(false);
     }
@@ -139,10 +141,14 @@ export default function ProfilePermissions() {
         <div className="profile-card">
           <FeatureRow
             title="🔔 自动记账（通知监听）"
-            desc={'授权「通知使用权」后，付款/收款时按微信、支付宝的通知自动生成待确认草稿（只解析这两个应用的通知，其他应用不读取、不保存）。需在个人中心打开总开关后生效。'}
+            desc={'授权「通知使用权」后，付款/收款时按微信、支付宝的通知自动生成待确认草稿（只解析这两个应用的通知，其他应用不读取、不保存）。需在个人中心打开总开关后生效。小米/红米等国产系统建议把 PigBaby 的省电策略设为「无限制」并锁定后台，避免监听服务被系统清理导致漏抓。'}
           >
-            <span className={`pf-status ${notifAccess ? 'on' : ''}`}>
-              {isNativeCapture ? (notifAccess ? '已授权' : '未授权') : '仅安卓端'}
+            <span className={`pf-status ${notifAccess && notifConnected ? 'on' : ''}`}>
+              {isNativeCapture
+                ? notifAccess
+                  ? (notifConnected ? '已授权·监听中' : '已授权·未连接')
+                  : '未授权'
+                : '仅安卓端'}
             </span>
             <button
               className="pf-toggle"

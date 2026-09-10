@@ -83,6 +83,23 @@ public class AutoCapturePlugin extends Plugin {
     }
 
     @PluginMethod
+    public void status(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("enabled", isListenerEnabled());
+        ret.put("connected", PigNotificationListener.isConnected());
+        call.resolve(ret);
+    }
+
+    /** 扫描当前通知栏，补抓还在栏里但未被记录的通知 */
+    @PluginMethod
+    public void scanActive(PluginCall call) {
+        int added = PigNotificationListener.scanActive(getContext());
+        JSObject ret = new JSObject();
+        ret.put("added", added);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void pullCaptured(PluginCall call) {
         JSObject ret = new JSObject();
         ret.put("captures", NotifStore.peek(getContext()));

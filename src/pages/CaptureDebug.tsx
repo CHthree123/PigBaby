@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AutoCapture, parseCapture, captureText, isNativeCapture, type RawCapture, type ParseResult } from '../autoCapture';
-import { loadData, saveData, loadTagRegistry, loadPendingCaptures } from '../storage';
+import { loadData, saveData, loadTagRegistry, loadPendingCaptures, loadCaptureLog, type CaptureLogEntry } from '../storage';
 import { MemoryEngine } from '../tagMemory';
 import AddRecordModal from '../components/AddRecordModal';
 import './CaptureDebug.css';
@@ -30,9 +30,18 @@ function guessIncome(capture: RawCapture): boolean {
   return /退款|到账|收款|收入|退回/.test(captureText(capture));
 }
 
+const ACTION_LABEL: Record<CaptureLogEntry['action'], string> = {
+  draft: '待确认',
+  posted: '已入账',
+  skipped: '未识别',
+  duplicate: '重复',
+};
+
 export default function CaptureDebug() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
+  const [log, setLog] = useState<CaptureLogEntry[]>([]);
+  const [listener, setListener] = useState<{ enabled: boolean; connected: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [manual, setManual] = useState<Row | null>(null);
@@ -46,6 +55,9 @@ export default function CaptureDebug() {
       return;
     }
     try {
+      setListener(await AutoCapture.status().catch(() => null));
+      // 先扫一遍通知栏，把还在栏里的通知补进队列
+      await AutoCapture.scanActive().catch(() => undefined);
       const { captures } = await AutoCapture.pullCaptured();
       const data = await loadData();
       const reg = await loadTagRegistry();
@@ -63,6 +75,7 @@ export default function CaptureDebug() {
         }))
         .sort((a, b) => b.capture.when - a.capture.when);
       setRows(list);
+      setLog(await loadCaptureLog());
     } catch (e) {
       setError(`读取失败：${(e as { message?: string })?.message || String(e)}`);
     }
@@ -71,6 +84,7 @@ export default function CaptureDebug() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -82,12 +96,21 @@ export default function CaptureDebug() {
       </div>
 
       <div className="cd-note">
-        显示最近 7 天捕获的微信/支付宝通知原文与解析结果，用于校准解析规则。
-        {rows.length > 0 && ` 共 ${rows.length} 条。`}
+        显示最近 7 天捕获的微信/支付宝通知原文与解析结果，用于校准解析规则。历史记录不会因清后台而丢失。
+      </div>
+
+      <div className={`cd-status ${listener?.connected ? 'on' : ''}`}>
+        {listener === null
+          ? '监听状态：读取中…'
+          : !listener.enabled
+            ? '监听状态：未授权（去「权限设置」开启通知使用权）'
+            : listener.connected
+              ? '监听状态：已授权 · 监听中'
+              : '监听状态：已授权 · 未连接（服务被系统清理，打开本页或稍候会自动重连）'}
       </div>
 
       <button className="cd-refresh" onClick={load} disabled={loading}>
-        {loading ? '读取中…' : '刷新'}
+        {loading ? '读取中…' : '刷新（并扫描通知栏）'}
       </button>
 
       {rows.length > 0 && (
@@ -98,14 +121,14 @@ export default function CaptureDebug() {
             setRows([]);
           }}
         >
-          清空捕获（不影响已入账记录）
+          清空未处理捕获（不影响历史与已入账记录）
         </button>
       )}
 
       {error && <div className="cd-error">{error}</div>}
 
       {!loading && !error && rows.length === 0 && (
-        <div className="cd-note">还没有捕获到通知。开启自动记账并完成一笔小额支付后，这里会出现通知原文。</div>
+        <div className="cd-note">当前没有未处理的捕获。下面「历史记录」里可以看到每次捕获的处置结果。</div>
       )}
 
       {rows.map(({ capture, result, draft, recorded }) => (
@@ -149,6 +172,23 @@ export default function CaptureDebug() {
           )}
         </div>
       ))}
+
+      {log.length > 0 && (
+        <>
+          <div className="cd-section-title">历史记录（最近 {log.length} 条）</div>
+          {log.map((e) => (
+            <div key={e.id} className="cd-log-row">
+              <div className="cd-log-head">
+                <span className="cd-app">{e.app}</span>
+                <span className="cd-time">{formatTime(e.when)}</span>
+                <span className={`cd-badge act-${e.action}`}>{ACTION_LABEL[e.action]}</span>
+              </div>
+              <div className="cd-log-text">{e.text || e.title || '（无文本）'}</div>
+              <div className="cd-log-reason">{e.reason}</div>
+            </div>
+          ))}
+        </>
+      )}
 
       {manual && (
         <AddRecordModal

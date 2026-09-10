@@ -528,6 +528,40 @@ export async function savePendingCaptures(list: PendingCapture[]): Promise<void>
   await Preferences.set({ key: PENDING_KEY, value: JSON.stringify(list) });
 }
 
+// ========== 自动记账捕获历史（调试/追溯用，独立于工作队列，不会被清除） ==========
+
+export interface CaptureLogEntry {
+  id: string;
+  app: string;
+  when: number;
+  title: string;
+  text: string;
+  detail: string;      // 其他文本/原始字段摘要（截断）
+  ok: boolean;
+  reason: string;      // 未识别原因或说明
+  action: 'draft' | 'posted' | 'skipped' | 'duplicate';
+  loggedAt: number;
+}
+
+const CAPTURE_LOG_KEY = 'pigbaby_capture_log';
+const CAPTURE_LOG_MAX = 120;
+
+export async function loadCaptureLog(): Promise<CaptureLogEntry[]> {
+  const { value } = await Preferences.get({ key: CAPTURE_LOG_KEY });
+  if (!value) return [];
+  return JSON.parse(value) as CaptureLogEntry[];
+}
+
+export async function appendCaptureLog(entries: CaptureLogEntry[]): Promise<void> {
+  if (entries.length === 0) return;
+  const existing = await loadCaptureLog();
+  const byId = new Map<string, CaptureLogEntry>();
+  for (const e of existing) byId.set(e.id, e);
+  for (const e of entries) byId.set(e.id, e);
+  const merged = [...byId.values()].sort((a, b) => b.when - a.when).slice(0, CAPTURE_LOG_MAX);
+  await Preferences.set({ key: CAPTURE_LOG_KEY, value: JSON.stringify(merged) });
+}
+
 // ========== 智能推荐（记账记忆）开关与忽略列表 ==========
 
 const SMART_REC_KEY = 'pigbaby_smart_rec';

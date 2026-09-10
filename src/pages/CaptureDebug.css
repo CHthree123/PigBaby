@@ -104,6 +104,75 @@
   font-weight: 700;
 }
 
+.cd-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: #E8930C;
+  background: rgba(232, 147, 12, 0.12);
+  border-radius: 10px;
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+
+.cd-status.on {
+  color: #4E9E52;
+  background: rgba(123, 198, 126, 0.15);
+}
+
+.cd-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 10px 2px 2px;
+}
+
+.cd-log-row {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cd-log-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cd-log-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.cd-log-reason {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cd-badge.act-draft {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.cd-badge.act-posted {
+  background: rgba(123, 198, 126, 0.18);
+  color: #4E9E52;
+}
+
+.cd-badge.act-skipped {
+  background: rgba(232, 147, 12, 0.15);
+  color: #E8930C;
+}
+
+.cd-badge.act-duplicate {
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
 .cd-rawdump {
   margin-top: 6px;
   padding-top: 6px;

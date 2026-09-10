@@ -2,6 +2,7 @@ package com.pigbaby.app;
 
 import android.app.Notification;
 import android.app.Person;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,6 +21,8 @@ import java.util.Set;
  * 便于不重新编译原生代码即可校准规则。
  */
 public class PigNotificationListener extends NotificationListenerService {
+
+    private static PigNotificationListener instance;
 
     private static final Set<String> WATCHED = new HashSet<>(Arrays.asList(
             "com.tencent.mm",
@@ -58,21 +61,65 @@ public class PigNotificationListener extends NotificationListenerService {
     }
 
     @Override
+    public void onListenerConnected() {
+        super.onListenerConnected();
+        instance = this;
+    }
+
+    @Override
+    public void onListenerDisconnected() {
+        super.onListenerDisconnected();
+        if (instance == this) instance = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        if (instance == this) instance = null;
+        super.onDestroy();
+    }
+
+    /** 监听服务当前是否连上（被系统/省电策略杀掉时会断开） */
+    public static boolean isConnected() {
+        return instance != null;
+    }
+
+    /** 扫描当前通知栏，补抓还在栏里但未被记录的通知（返回新增条数） */
+    public static int scanActive(Context context) {
+        PigNotificationListener svc = instance;
+        if (svc == null) return 0;
+        int added = 0;
+        try {
+            StatusBarNotification[] active = svc.getActiveNotifications();
+            if (active == null) return 0;
+            for (StatusBarNotification sbn : active) {
+                if (capture(context, sbn)) added++;
+            }
+        } catch (Exception ignored) {
+        }
+        return added;
+    }
+
+    @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        if (sbn == null) return;
+        capture(this, sbn);
+    }
+
+    /** 过滤 → 提取文本 → 入库；返回是否新入库 */
+    private static boolean capture(Context context, StatusBarNotification sbn) {
+        if (sbn == null) return false;
         String pkg = sbn.getPackageName();
-        if (pkg == null || !WATCHED.contains(pkg)) return;
+        if (pkg == null || !WATCHED.contains(pkg)) return false;
         Notification n = sbn.getNotification();
-        if (n == null) return;
+        if (n == null) return false;
         Bundle extras = n.extras;
-        if (extras == null) return;
+        if (extras == null) return false;
 
         String title = str(extras.getCharSequence(Notification.EXTRA_TITLE));
         String text = str(extras.getCharSequence(Notification.EXTRA_TEXT));
         String big = str(extras.getCharSequence(Notification.EXTRA_BIG_TEXT));
-        String ticker = sbn.getNotification().tickerText == null ? "" : sbn.getNotification().tickerText.toString();
-        if (title.isEmpty() && text.isEmpty() && big.isEmpty() && ticker.isEmpty()) return;
-        if (!looksLikeFinance(title + " " + text + " " + big + " " + ticker)) return;
+        String ticker = n.tickerText == null ? "" : n.tickerText.toString();
+        if (title.isEmpty() && text.isEmpty() && big.isEmpty() && ticker.isEmpty()) return false;
+        if (!looksLikeFinance(title + " " + text + " " + big + " " + ticker)) return false;
 
         JSObject o = new JSObject();
         o.put("pkg", pkg);
@@ -90,11 +137,12 @@ public class PigNotificationListener extends NotificationListenerService {
         o.put("rawDump", dumpExtras(extras, 0));
         o.put("when", sbn.getPostTime() > 0 ? sbn.getPostTime() : System.currentTimeMillis());
 
-        NotifStore.add(this, o);
+        if (!NotifStore.add(context, o)) return false;
 
         Intent i = new Intent(AutoCapturePlugin.EVENT_CAPTURED);
-        i.setPackage(getPackageName());
-        sendBroadcast(i);
+        i.setPackage(context.getPackageName());
+        context.sendBroadcast(i);
+        return true;
     }
 
     /**
