@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import SmsAutoPanel from '../components/SmsAutoPanel';
+import { AutoCapture, syncCaptures, isNativeCapture } from '../autoCapture';
 import {
   sysCalendarAvailable,
   loadSysCalEnabled,
@@ -17,6 +18,53 @@ export default function ProfilePermissions() {
   const [alarmStatus, setAlarmStatus] = useState('检查中…');
 
   const [calSync, setCalSync] = useState<'checking' | 'off' | 'granted' | 'denied'>('checking');
+
+  const [notifAccess, setNotifAccess] = useState<boolean | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
+
+  const checkNotifAccess = async () => {
+    if (!isNativeCapture) { setNotifAccess(null); return; }
+    try {
+      const r = await AutoCapture.checkEnabled();
+      setNotifAccess(r.enabled);
+    } catch {
+      setNotifAccess(false);
+    }
+  };
+
+  useEffect(() => {
+    checkNotifAccess();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') checkNotifAccess();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
+  const openNotifSettings = async () => {
+    try {
+      await AutoCapture.openSettings();
+    } catch {
+      // 用户在系统设置里取消
+    }
+  };
+
+  const runSync = async () => {
+    setSyncing(true);
+    setSyncStatus('');
+    try {
+      const r = await syncCaptures();
+      setSyncStatus(
+        r.total === 0
+          ? '暂时没有新的捕获'
+          : `本次处理 ${r.total} 条：待确认 ${r.drafts} 笔、直接入账 ${r.posted} 笔、忽略 ${r.skipped} 条`
+      );
+    } catch (e) {
+      setSyncStatus(`同步失败：${(e as { message?: string })?.message || String(e)}`);
+    }
+    setSyncing(false);
+  };
 
   const initCalSync = async () => {
     if (!sysCalendarAvailable()) { setCalSync('off'); return; }
@@ -88,6 +136,23 @@ export default function ProfilePermissions() {
 
       <div className="profile-section">
         <div className="profile-section-title">🔐 系统授权</div>
+        <div className="profile-card">
+          <div className="profile-row">
+            <span className="profile-row-title">🔔 自动记账（通知监听）</span>
+            <span className={`profile-row-status ${notifAccess ? 'on' : ''}`}>
+              {isNativeCapture ? (notifAccess ? '已授权' : '未授权') : '仅安卓端'}
+            </span>
+            <button className="sms-auto-btn" onClick={openNotifSettings} disabled={!isNativeCapture}>去开启</button>
+            <button className="sms-auto-btn" onClick={runSync} disabled={!isNativeCapture || syncing}>
+              {syncing ? '同步中…' : '立即同步'}
+            </button>
+          </div>
+          <div className="profile-row-note">
+            授权"通知使用权"后，付款/收款时按微信、支付宝的通知自动生成待确认草稿（只解析这两个应用的通知，其他应用不读取、不保存）。
+            需在个人中心打开总开关后生效。
+          </div>
+          {syncStatus && <div className="sms-auto-status">{syncStatus}</div>}
+        </div>
         <div className="profile-card">
           <SmsAutoPanel />
         </div>

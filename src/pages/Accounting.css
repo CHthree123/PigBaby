@@ -2283,6 +2283,125 @@
   white-space: nowrap;
 }
 
+/* 自动记账：待确认卡片 */
+.ac-pending-card {
+  margin: 0 0 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--primary);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.ac-pending-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.ac-pending-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.ac-pending-toggle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ac-pending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ac-pending-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ac-pending-item-main {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.ac-pending-note {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-pending-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.ac-pending-tag {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ac-pending-amount {
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ac-pending-amount.expense { color: var(--expense, #FF6B6B); }
+.ac-pending-amount.income { color: var(--success, #7BC67E); }
+
+.ac-pending-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.ac-pending-btn.ok {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.ac-pending-all {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ac-pending-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
 /* 余额制：月预算进度条 */
 .ac-budget-bar {
   height: 6px;

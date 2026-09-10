@@ -35,12 +35,15 @@ const TAG_KEYWORDS: [string, string[]][] = [
   ['学习', ['当当', '图书', '书店', '知乎', '得到', '课程', '培训', '教育', '作业帮', '有道']],
 ];
 
-function guessTag(record: ParsedSmsRecord): string {
-  const text = `${record.note} ${record.merchant}`;
+export function guessTagByText(text: string): string {
   for (const [tag, keywords] of TAG_KEYWORDS) {
     if (keywords.some((k) => text.includes(k))) return tag;
   }
   return '其他';
+}
+
+function guessTag(record: ParsedSmsRecord): string {
+  return guessTagByText(`${record.note} ${record.merchant}`);
 }
 
 // income keyword -> income tag（与收入默认标签集保持一致）
@@ -52,12 +55,15 @@ const INCOME_TAG_KEYWORDS: [string, string[]][] = [
   ['转账', ['转账', '转入', '收款', '收到', '退回', '退款']],
 ];
 
-function guessIncomeTag(record: ParsedSmsRecord): string {
-  const text = `${record.note} ${record.merchant}`;
+export function guessIncomeTagByText(text: string): string {
   for (const [tag, keywords] of INCOME_TAG_KEYWORDS) {
     if (keywords.some((k) => text.includes(k))) return tag;
   }
   return '其他';
+}
+
+function guessIncomeTag(record: ParsedSmsRecord): string {
+  return guessIncomeTagByText(`${record.note} ${record.merchant}`);
 }
 
 // Turn parsed SMS records into transactions, skipping ones already in the ledger

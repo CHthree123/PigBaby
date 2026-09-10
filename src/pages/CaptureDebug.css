@@ -1,0 +1,94 @@
+.cd-page {
+  padding: 16px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cd-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.cd-refresh {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cd-error {
+  font-size: 13px;
+  color: #FF6B6B;
+}
+
+.cd-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cd-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cd-app {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cd-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.cd-badge {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cd-badge.draft {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.cd-badge.done {
+  background: rgba(123, 198, 126, 0.18);
+  color: #4E9E52;
+}
+
+.cd-raw {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  word-break: break-all;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.cd-parse {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cd-parse.ok {
+  color: #4E9E52;
+}
+
+.cd-parse.fail {
+  color: #E8930C;
+}

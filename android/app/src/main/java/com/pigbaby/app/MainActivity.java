@@ -21,6 +21,7 @@ public class MainActivity extends BridgeActivity {
     webView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
 
     registerPlugin(SmsReaderPlugin.class);
+    registerPlugin(AutoCapturePlugin.class);
     createReminderChannel();
   }
 

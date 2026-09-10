@@ -8,6 +8,7 @@ import PiggyBank from '../components/PiggyBank';
 import EmptyState from '../components/EmptyState';
 import AnimatedNumber from '../components/AnimatedNumber';
 import SmsAutoSync from '../components/SmsAutoSync';
+import AutoCaptureSync from '../components/AutoCaptureSync';
 import './Accounting.css';
 
 function todayStr(): string {
@@ -310,6 +311,8 @@ export default function Accounting() {
         records={data.records}
         onImported={handleSmsImported}
       />
+
+      <AutoCaptureSync onRefresh={refresh} />
 
       {view === 'daily' && (
         <div key={`daily-${viewKey}`} className="view-slide-in">

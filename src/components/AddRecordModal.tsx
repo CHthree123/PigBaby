@@ -16,6 +16,7 @@ import './AddRecordModal.css';
 interface Props {
   type: 'income' | 'expense';
   editRecord?: Transaction | null;
+  draft?: boolean;              // 自动记账待确认草稿：标题改为确认语气
   onSave: (record: Transaction) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
@@ -26,7 +27,7 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function AddRecordModal({ type, editRecord, onSave, onDelete, onClose }: Props) {
+export default function AddRecordModal({ type, editRecord, draft, onSave, onDelete, onClose }: Props) {
   const isEdit = !!editRecord;
   const [amount, setAmount] = useState(editRecord ? String(editRecord.amount) : '');
   const [note, setNote] = useState(editRecord?.note ?? '');
@@ -150,7 +151,11 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
       <div className="arm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-handle" />
         <h3 className="arm-title">
-          {isEdit ? (type === 'income' ? '💰 编辑收入' : '💸 编辑支出') : (type === 'income' ? '💰 记收入' : '💸 记支出')}
+          {draft
+            ? (type === 'income' ? '🔔 确认收入（可修改）' : '🔔 确认支出（可修改）')
+            : isEdit
+              ? (type === 'income' ? '💰 编辑收入' : '💸 编辑支出')
+              : (type === 'income' ? '💰 记收入' : '💸 记支出')}
         </h3>
 
         <div className="arm-field">

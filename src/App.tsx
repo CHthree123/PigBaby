@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import ProfilePermissions from './pages/ProfilePermissions';
 import ProfileCenter from './pages/ProfileCenter';
 import TagManager from './pages/TagManager';
+import CaptureDebug from './pages/CaptureDebug';
 import CalendarPage from './pages/CalendarPage';
 import { loadTheme, loadFeatures, loadPigAction, type ThemeName, type AppFeatures, type PigAction } from './storage';
 import './App.css';
@@ -116,6 +117,7 @@ function App() {
           <Route path="/profile/permissions" element={<ProfilePermissions />} />
           <Route path="/profile/center" element={<ProfileCenter theme={theme} onThemeChange={setTheme} />} />
           <Route path="/profile/tags" element={<TagManager />} />
+          <Route path="/profile/captures" element={<CaptureDebug />} />
         </Routes>
       </main>
       <nav className="bottom-nav">

@@ -469,6 +469,65 @@ export async function saveInitialBalance(b: InitialBalance): Promise<void> {
   await Preferences.set({ key: INITIAL_BALANCE_KEY, value: JSON.stringify(b) });
 }
 
+// ========== 自动记账（通知监听）：设置与待确认草稿 ==========
+
+export interface PendingCapture {
+  id: string;
+  app: string;              // 微信 / 支付宝
+  when: number;             // 通知时间（ms），也用作确认入账后的记录 id 前缀
+  amount: number;
+  type: 'income' | 'expense';
+  merchant: string;
+  note: string;
+  tag: string;
+  raw: string;              // 原始通知文本（调试用）
+  createdAt: number;
+}
+
+const AUTO_CAPTURE_KEY = 'pigbaby_auto_capture';
+const AUTO_SKIP_CONFIRM_KEY = 'pigbaby_auto_confirm_skip';
+const AUTO_AI_KEY = 'pigbaby_auto_ai';
+const PENDING_KEY = 'pigbaby_pending_captures';
+
+export async function loadAutoCapture(): Promise<boolean> {
+  const { value } = await Preferences.get({ key: AUTO_CAPTURE_KEY });
+  return value === '1';
+}
+
+export async function saveAutoCapture(on: boolean): Promise<void> {
+  await Preferences.set({ key: AUTO_CAPTURE_KEY, value: on ? '1' : '0' });
+}
+
+// 跳过确认：开=捕获后直接入账；关（默认）=每笔都要人工确认
+export async function loadSkipConfirm(): Promise<boolean> {
+  const { value } = await Preferences.get({ key: AUTO_SKIP_CONFIRM_KEY });
+  return value === '1';
+}
+
+export async function saveSkipConfirm(on: boolean): Promise<void> {
+  await Preferences.set({ key: AUTO_SKIP_CONFIRM_KEY, value: on ? '1' : '0' });
+}
+
+// AI 增强（预留：接入大模型打标，默认关闭）
+export async function loadAiEnhance(): Promise<boolean> {
+  const { value } = await Preferences.get({ key: AUTO_AI_KEY });
+  return value === '1';
+}
+
+export async function saveAiEnhance(on: boolean): Promise<void> {
+  await Preferences.set({ key: AUTO_AI_KEY, value: on ? '1' : '0' });
+}
+
+export async function loadPendingCaptures(): Promise<PendingCapture[]> {
+  const { value } = await Preferences.get({ key: PENDING_KEY });
+  if (!value) return [];
+  return JSON.parse(value) as PendingCapture[];
+}
+
+export async function savePendingCaptures(list: PendingCapture[]): Promise<void> {
+  await Preferences.set({ key: PENDING_KEY, value: JSON.stringify(list) });
+}
+
 // ========== 智能推荐（记账记忆）开关与忽略列表 ==========
 
 const SMART_REC_KEY = 'pigbaby_smart_rec';

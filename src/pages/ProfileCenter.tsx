@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AutoCapture, isNativeCapture } from '../autoCapture';
 import {
   saveTheme,
   loadFeatures,
@@ -12,6 +13,12 @@ import {
   saveInitialBalance,
   loadSmartRec,
   saveSmartRec,
+  loadAutoCapture,
+  saveAutoCapture,
+  loadSkipConfirm,
+  saveSkipConfirm,
+  loadAiEnhance,
+  saveAiEnhance,
   type ThemeName,
   type AppFeatures,
   type PigAction,
@@ -40,6 +47,9 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [balanceInput, setBalanceInput] = useState('');
   const [smartRec, setSmartRec] = useState(true);
+  const [autoCapture, setAutoCapture] = useState(false);
+  const [skipConfirm, setSkipConfirm] = useState(false);
+  const [aiEnhance, setAiEnhance] = useState(false);
 
   useEffect(() => {
     loadFeatures().then(setFeatures);
@@ -47,7 +57,26 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
     loadMoneyMode().then(setMoneyMode);
     loadInitialBalance().then((b) => setBalanceAmount(b ? b.amount : null));
     loadSmartRec().then(setSmartRec);
+    loadAutoCapture().then(setAutoCapture);
+    loadSkipConfirm().then(setSkipConfirm);
+    loadAiEnhance().then(setAiEnhance);
   }, []);
+
+  const toggleAutoCapture = async (on: boolean) => {
+    setAutoCapture(on);
+    await saveAutoCapture(on);
+    if (on && isNativeCapture) {
+      try {
+        const r = await AutoCapture.checkEnabled();
+        if (!r.enabled) {
+          const go = window.confirm('还需要在系统设置里授予 PigBaby「通知使用权」，现在去开启？');
+          if (go) await AutoCapture.openSettings();
+        }
+      } catch {
+        // 检查失败时不影响开关本身
+      }
+    }
+  };
 
   const moduleMode: ModuleMode =
     features.accounting && features.tasks ? 'both' : features.accounting ? 'accounting' : 'tasks';
@@ -211,6 +240,69 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
             <span className="profile-link-arrow">›</span>
           </button>
           <div className="profile-placeholder-item">☁️ 数据同步与备份<span className="soon">敬请期待</span></div>
+        </div>
+      </div>
+
+      <div className="profile-section">
+        <div className="profile-section-title">🤖 自动记账</div>
+        <div className="profile-card">
+          <div className="profile-theme-row">
+            <span>🔔 通知监听自动记账</span>
+            <div className="profile-theme-options">
+              <button
+                className={`profile-theme-opt ${autoCapture ? 'active' : ''}`}
+                disabled={!features.accounting}
+                onClick={() => toggleAutoCapture(true)}
+              >开</button>
+              <button
+                className={`profile-theme-opt ${!autoCapture ? 'active' : ''}`}
+                disabled={!features.accounting}
+                onClick={() => toggleAutoCapture(false)}
+              >关</button>
+            </div>
+          </div>
+          <div className="profile-row-note">
+            开启后，微信/支付宝的付款与收款通知会生成记账草稿（需先在「权限设置」里授予通知使用权）。
+          </div>
+          <div className="profile-divider" />
+          <div className="profile-theme-row">
+            <span>⚡ 跳过确认直接入账</span>
+            <div className="profile-theme-options">
+              <button
+                className={`profile-theme-opt ${skipConfirm ? 'active' : ''}`}
+                disabled={!autoCapture}
+                onClick={() => { setSkipConfirm(true); saveSkipConfirm(true); }}
+              >开</button>
+              <button
+                className={`profile-theme-opt ${!skipConfirm ? 'active' : ''}`}
+                disabled={!autoCapture}
+                onClick={() => { setSkipConfirm(false); saveSkipConfirm(false); }}
+              >关</button>
+            </div>
+          </div>
+          <div className="profile-row-note">关闭（默认）时每笔捕获都会先进入记账页的"待确认"，逐笔确认后才入账。</div>
+          <div className="profile-divider" />
+          <div className="profile-theme-row">
+            <span>🧠 AI 增强打标</span>
+            <div className="profile-theme-options">
+              <button
+                className={`profile-theme-opt ${aiEnhance ? 'active' : ''}`}
+                disabled={!autoCapture}
+                onClick={() => { setAiEnhance(true); saveAiEnhance(true); }}
+              >开</button>
+              <button
+                className={`profile-theme-opt ${!aiEnhance ? 'active' : ''}`}
+                disabled={!autoCapture}
+                onClick={() => { setAiEnhance(false); saveAiEnhance(false); }}
+              >关</button>
+            </div>
+          </div>
+          <div className="profile-row-note">预留：接入 AI 后用于识别商户并推荐标签（账目摘要会上传云端）。当前为本地规则 + 记账记忆打标。</div>
+          <div className="profile-divider" />
+          <button className="profile-link-row" onClick={() => navigate('/profile/captures')}>
+            <span>🔍 最近捕获（解析校准）</span>
+            <span className="profile-link-arrow">›</span>
+          </button>
         </div>
       </div>
 
