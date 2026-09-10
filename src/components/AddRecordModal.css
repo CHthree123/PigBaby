@@ -162,6 +162,35 @@
   transform: scale(0.95);
 }
 
+/* 备注驱动的标签推荐 */
+.arm-tag-suggest {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.arm-tag-suggest-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.arm-tag-suggest-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--primary);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+.arm-tag-suggest-chip:active {
+  transform: scale(0.96);
+}
+
 /* Remembered notes per tag */
 .arm-note-memory {
   margin-top: 10px;

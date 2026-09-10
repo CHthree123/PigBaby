@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { type Transaction, type AppData, loadData, saveData, loadTagColors, TAG_COLORS, loadSavingsGoals, saveSavingsGoals } from '../storage';
+import { type Transaction, type AppData, loadData, saveData, loadTagColors, TAG_COLORS, loadSavingsGoals, saveSavingsGoals, loadMoneyMode, loadInitialBalance, type MoneyMode, type InitialBalance } from '../storage';
 import AddRecordModal from '../components/AddRecordModal';
 import DailyRecords from '../components/DailyRecords';
 import TagStats from '../components/TagStats';
@@ -50,6 +50,8 @@ export default function Accounting() {
   const [showSettings, setShowSettings] = useState(false);
   const [budgetInput, setBudgetInput] = useState('3000');
   const [tagColors, setTagColors] = useState<Record<string,string>>({...TAG_COLORS});
+  const [moneyMode, setMoneyMode] = useState<MoneyMode>('budget');
+  const [initialBalance, setInitialBalance] = useState<InitialBalance | null>(null);
   const [undoRecord, setUndoRecord] = useState<Transaction | null>(null);
   const [undoVisible, setUndoVisible] = useState(false);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,6 +86,8 @@ export default function Accounting() {
   useEffect(() => {
     refresh();
     loadTagColors().then(setTagColors);
+    loadMoneyMode().then(setMoneyMode);
+    loadInitialBalance().then(setInitialBalance);
   }, [refresh]);
 
   const monthRecords = data.records.filter((r) => r.month === currentMonth);
@@ -97,6 +101,17 @@ export default function Accounting() {
     .reduce((sum, r) => sum + r.amount, 0);
 
   const remaining = data.monthlyBudget + monthIncome - monthExpense;
+
+  // 余额制：余额 = 初始余额 + 生效日期起的累计收入 − 累计支出
+  const balanceAmount = useMemo(() => {
+    if (!initialBalance) return 0;
+    let sum = initialBalance.amount;
+    for (const r of data.records) {
+      if (r.date < initialBalance.fromDate) continue;
+      sum += r.type === 'income' ? r.amount : -r.amount;
+    }
+    return sum;
+  }, [data.records, initialBalance]);
 
   const today = todayStr();
 
@@ -319,7 +334,8 @@ export default function Accounting() {
       {view === 'piggybank' && (
         <div key={`piggy-${viewKey}`} className="view-slide-in">
           <PiggyBank
-            remaining={remaining}
+            remaining={moneyMode === 'balance' ? balanceAmount : remaining}
+            remainingLabel={moneyMode === 'balance' ? '余额' : undefined}
             data={data}
             onDataChange={async (d) => { await saveData(d); await refresh(); }}
             onRefresh={refresh}
@@ -336,12 +352,35 @@ export default function Accounting() {
             <button className="ac-month-btn" onClick={nextMonth}>›</button>
           </div>
 
-          {/* Balance Card */}
-          <div className={`ac-balance-card ${remaining >= 0 ? 'positive' : 'negative'}`}>
-            <div className="ac-balance-label">本月剩余</div>
+          {/* Balance Card：预算制=本月剩余；余额制=当前余额 + 本月支出 */}
+          <div className={`ac-balance-card ${(moneyMode === 'balance' ? balanceAmount : remaining) >= 0 ? 'positive' : 'negative'}`}>
+            <div className="ac-balance-label">{moneyMode === 'balance' ? '余额' : '本月剩余'}</div>
             <div className="ac-balance-amount">
-              <AnimatedNumber value={remaining} prefix="¥" />
+              <AnimatedNumber value={moneyMode === 'balance' ? balanceAmount : remaining} prefix="¥" />
             </div>
+        {moneyMode === 'balance' ? (
+          <>
+            <div className="ac-balance-details">
+              <div className="ac-balance-detail-item">
+                <span className="ac-detail-label">本月支出</span>
+                <span className="ac-detail-value expense"><AnimatedNumber value={monthExpense} prefix="¥" /></span>
+              </div>
+              <div className="ac-balance-divider" />
+              <div className="ac-balance-detail-item">
+                <span className="ac-detail-label">月预算</span>
+                <span className="ac-detail-value">{data.monthlyBudget > 0 ? `¥${data.monthlyBudget}` : '未设置'}</span>
+              </div>
+            </div>
+            {data.monthlyBudget > 0 && (
+              <div className="ac-budget-bar">
+                <div
+                  className={`ac-budget-bar-fill ${monthExpense > data.monthlyBudget ? 'over' : ''}`}
+                  style={{ width: `${Math.min(100, (monthExpense / data.monthlyBudget) * 100)}%` }}
+                />
+              </div>
+            )}
+          </>
+        ) : (
         <div className="ac-balance-details">
           <div className="ac-balance-detail-item">
             <span className="ac-detail-label">月预算</span>
@@ -353,6 +392,7 @@ export default function Accounting() {
             <span className="ac-detail-value expense"><AnimatedNumber value={monthExpense} prefix="¥" /></span>
           </div>
         </div>
+        )}
       </div>
 
       {/* Action Buttons */}

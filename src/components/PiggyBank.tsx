@@ -6,6 +6,7 @@ import EmptyState from './EmptyState';
 
 interface Props {
   remaining: number;
+  remainingLabel?: string;
   data: AppData;
   onDataChange: (data: AppData) => Promise<void>;
   onRefresh: () => Promise<void>;
@@ -16,7 +17,7 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function PiggyBank({ remaining, data, onDataChange, onRefresh }: Props) {
+export default function PiggyBank({ remaining, remainingLabel, data, onDataChange, onRefresh }: Props) {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [showNewGoal, setShowNewGoal] = useState(false);
   const [showDeposit, setShowDeposit] = useState(false);
@@ -229,7 +230,7 @@ export default function PiggyBank({ remaining, data, onDataChange, onRefresh }: 
             <div className="modal-handle" />
             <h3>💰 存入</h3>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 16, fontSize: 14 }}>
-              当前本月剩余：¥{remaining.toFixed(2)}
+              当前{remainingLabel ?? '本月剩余'}：¥{remaining.toFixed(2)}
             </p>
             <div className="arm-field">
               <label className="arm-label">存入金额</label>

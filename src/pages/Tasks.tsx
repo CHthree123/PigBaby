@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties, type MouseEvent as RMouseEvent, type PointerEvent as RPointerEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Task, TasksData, DateNote, CheckInData, CheckInRecord } from '../storage';
-import { loadTasks, saveTasks, loadDateNotes, saveDateNotes, loadCheckIn, saveCheckIn } from '../storage';
+import { loadTasks, saveTasks, loadDateNotes, loadCheckIn, saveCheckIn } from '../storage';
 import AddTaskModal from '../components/AddTaskModal';
 import DraggableFab from '../components/DraggableFab';
 import CheckIn from '../components/CheckIn';
 import Tips from '../components/Tips';
 import Projects from '../components/Project';
 import EmptyState from '../components/EmptyState';
+import CalendarView from '../components/CalendarView';
+import ReminderBadge from '../components/ReminderBadge';
 import { getHoliday } from '../holidays';
 import { getSysHolidaysForMonths, type SysHoliday } from '../sysCalendar';
 import { ensureNotificationPermission, resyncReminders, scheduleTaskReminder, openExactAlarmSettings, type ReminderScheduleResult } from '../notifications';
@@ -35,13 +37,6 @@ function daysInMonth(y: number, m: number): number {
 
 function getFirstDayOfWeek(y: number, m: number): number {
   return new Date(y, m - 1, 1).getDay();
-}
-
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-
-function ReminderBadge({ reminder }: { reminder?: string | null }) {
-  if (!reminder) return null;
-  return <span className="task-reminder-time">⏰ {reminder.slice(11)}</span>;
 }
 
 interface UndoState {
@@ -75,8 +70,8 @@ export default function Tasks() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [calYear, setCalYear] = useState(now.getFullYear());
-  const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+  const calYear = now.getFullYear();
+  const calMonth = now.getMonth() + 1;
   const [selectedDate, setSelectedDate] = useState(today);
   const [showAddModal, setShowAddModal] = useState(false);
   const [subTab, setSubTabRaw] = useState<SubTab>('tasks');
@@ -108,13 +103,21 @@ export default function Tasks() {
     }
   }, [searchParams, subTab]);
 
+  // 小猪按钮（创建任务）：/tasks?open=add 直接打开新建弹窗
+  useEffect(() => {
+    if (searchParams.get('open') === 'add') {
+      setShowAddModal(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('open');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   const [checkinData, setCheckinData] = useState<CheckInData>({ goals: [], records: [], summaries: [] });
   const [hideCompleted, setHideCompleted] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [futureExpanded, setFutureExpanded] = useState(false);
   const [dateNotes, setDateNotes] = useState<DateNote[]>([]);
-  const [noteInput, setNoteInput] = useState('');
-  const [editingNoteDate, setEditingNoteDate] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
 
   // Holidays fetched from the phone's system calendar (only when enabled +
@@ -257,41 +260,6 @@ export default function Tasks() {
     return set;
   }, [dateNotes]);
 
-  const selectedNote = useMemo(() => {
-    return dateNotes.find((n) => n.date === selectedDate);
-  }, [dateNotes, selectedDate]);
-
-  // Calendar data
-  const firstDay = getFirstDayOfWeek(calYear, calMonth);
-  const totalDays = daysInMonth(calYear, calMonth);
-  const prevMonthDays = daysInMonth(calYear, calMonth - 1 === 0 ? 12 : calMonth - 1);
-
-  const calendarDays: { day: number; month: 'prev' | 'current' | 'next'; dateStr: string }[] = [];
-  for (let i = firstDay - 1; i >= 0; i--) {
-    const d = prevMonthDays - i;
-    const m = calMonth - 1 === 0 ? 12 : calMonth - 1;
-    const y = calMonth - 1 === 0 ? calYear - 1 : calYear;
-    calendarDays.push({ day: d, month: 'prev', dateStr: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
-  }
-  for (let d = 1; d <= totalDays; d++) {
-    calendarDays.push({ day: d, month: 'current', dateStr: `${calYear}-${String(calMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
-  }
-  const remaining = 42 - calendarDays.length;
-  for (let d = 1; d <= remaining; d++) {
-    const m = calMonth + 1 > 12 ? 1 : calMonth + 1;
-    const y = calMonth + 1 > 12 ? calYear + 1 : calYear;
-    calendarDays.push({ day: d, month: 'next', dateStr: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
-  }
-
-  const prevCalMonth = () => {
-    if (calMonth === 1) { setCalMonth(12); setCalYear(calYear - 1); }
-    else setCalMonth(calMonth - 1);
-  };
-  const nextCalMonth = () => {
-    if (calMonth === 12) { setCalMonth(1); setCalYear(calYear + 1); }
-    else setCalMonth(calMonth + 1);
-  };
-
   // Fetch system-calendar holidays for every month visible on screen (the
   // calendar grid may show parts of the adjacent months too)
   const sysMonthsKey = useMemo(() => {
@@ -376,37 +344,6 @@ export default function Tasks() {
     setSelectedDate(task.date);
     await refresh();
     if (scheduleResult) feedbackReminder(scheduleResult);
-  };
-
-  const handleSaveNote = async () => {
-    if (!noteInput.trim()) return;
-    const existing = dateNotes.find((n) => n.date === selectedDate);
-    let updated: DateNote[];
-    if (existing) {
-      updated = dateNotes.map((n) =>
-        n.id === existing.id ? { ...n, note: noteInput.trim() } : n
-      );
-    } else {
-      const newNote: DateNote = {
-        id: Date.now().toString(),
-        date: selectedDate,
-        note: noteInput.trim(),
-        createdAt: new Date().toISOString(),
-      };
-      updated = [...dateNotes, newNote];
-    }
-    await saveDateNotes({ notes: updated });
-    setDateNotes(updated);
-    setNoteInput('');
-    setEditingNoteDate(null);
-  };
-
-  const handleDeleteNote = async () => {
-    const updated = dateNotes.filter((n) => n.date !== selectedDate);
-    await saveDateNotes({ notes: updated });
-    setDateNotes(updated);
-    setNoteInput('');
-    setEditingNoteDate(null);
   };
 
   const handleSaveEdit = async (updatedTask: Task) => {
@@ -646,94 +583,11 @@ export default function Tasks() {
           <button className="ac-subnav-btn" onClick={() => setSubTab('projects')}>工程</button>
         </div>
         <div key={`calendar-${subTabKey}`} className="view-slide-in">
-          {/* Full month calendar */}
-          <div className="mini-calendar">
-            <div className="mini-cal-header">
-              <button className="mini-cal-nav" onClick={prevCalMonth}>‹</button>
-              <span className="mini-cal-title">{calYear}年{calMonth}月</span>
-              <button className="mini-cal-nav" onClick={nextCalMonth}>›</button>
-            </div>
-            <div className="mini-cal-weekdays">
-              {WEEKDAYS.map((w) => <div key={w}>{w}</div>)}
-            </div>
-            <div className="mini-cal-grid">
-              {calendarDays.map(({ day, month, dateStr }) => {
-                const holiday = sysHolidays.get(dateStr) ?? getHoliday(dateStr);
-                const isHoliday = !!holiday;
-                const hasTask = taskDates.has(dateStr);
-                const hasNote = noteDates.has(dateStr);
-                return (
-                  <div
-                    key={dateStr}
-                    className={`mini-cal-day ${month !== 'current' ? 'other' : ''} ${dateStr === today ? 'today' : ''} ${dateStr === selectedDate ? 'selected' : ''} ${isHoliday ? 'holiday' : ''} ${hasNote ? 'annotated' : ''}`}
-                    onClick={() => {
-                      if (month === 'current') setSelectedDate(dateStr);
-                    }}
-                  >
-                    {day}
-                    <span className="mini-cal-indicators">
-                      {isHoliday && <span className="mini-cal-holiday" title={holiday?.name}>{holiday?.emoji}</span>}
-                      {hasTask && !isHoliday && <span className="mini-cal-dot" />}
-                      {hasNote && <span className="mini-cal-note-dot" title="有备注" />}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Date note */}
-          <div className="date-note-area">
-            {selectedNote && editingNoteDate !== selectedDate ? (
-              <div className="date-note-display">
-                <span className="date-note-icon">📝</span>
-                <span className="date-note-text">{selectedNote.note}</span>
-                <button className="date-note-edit-btn" onClick={() => { setNoteInput(selectedNote.note); setEditingNoteDate(selectedDate); }}>编辑</button>
-                <button className="date-note-del-btn" onClick={handleDeleteNote}>✕</button>
-              </div>
-            ) : editingNoteDate === selectedDate ? (
-              <div className="date-note-edit">
-                <input
-                  className="date-note-input"
-                  type="text"
-                  placeholder="输入日期备注..."
-                  value={noteInput}
-                  onChange={(e) => setNoteInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNote(); if (e.key === 'Escape') { setEditingNoteDate(null); setNoteInput(''); } }}
-                  autoFocus
-                />
-                <button className="date-note-save-btn" onClick={handleSaveNote}>保存</button>
-                <button className="date-note-cancel-btn" onClick={() => { setEditingNoteDate(null); setNoteInput(''); }}>取消</button>
-              </div>
-            ) : (
-              <button className="date-note-add-btn" onClick={() => { setNoteInput(''); setEditingNoteDate(selectedDate); }}>
-                + 添加备注
-              </button>
-            )}
-          </div>
-
-          {/* Tasks of the selected day */}
-          <div className="calendar-day-title">
-            {selectedDate === today ? '今天' : selectedDate} 的任务
-          </div>
-          {dateTasks.length === 0 ? (
-            <EmptyState emoji="📋" title="这天没有任务~" />
-          ) : (
-            <div className="task-list">
-              {dateTasks.map((task) => (
-                <div key={task.id} className="task-item">
-                  <div
-                    className={`task-checkbox ${task.completed ? 'checked' : ''}`}
-                    onClick={() => handleToggleComplete(task.id)}
-                  >{task.completed ? '✓' : ''}</div>
-                  <div className={`task-content ${task.completed ? 'done' : ''}`} onClick={() => setEditingTask(task)}>
-                    {task.content}
-                    <ReminderBadge reminder={task.reminder} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <CalendarView
+            tasks={tasks}
+            onToggleTask={handleToggleComplete}
+            onEditTask={setEditingTask}
+          />
         </div>
       </div>
     );

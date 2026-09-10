@@ -19,17 +19,76 @@ function formatDate(date: string): string {
   return `${parseInt(parts[1])}/${parseInt(parts[2])}`;
 }
 
+interface TagSlice {
+  tag: string;
+  amount: number;
+}
+
+function groupByTag(records: Transaction[], type: 'expense' | 'income'): TagSlice[] {
+  const map: Record<string, number> = {};
+  for (const r of records) {
+    if (r.type !== type) continue;
+    const t = r.tag || '其他';
+    map[t] = (map[t] || 0) + r.amount;
+  }
+  return (Object.entries(map) as [string, number][])
+    .map(([tag, amount]) => ({ tag, amount }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+function TagColumnChart({
+  title,
+  slices,
+  tagColors,
+  selectedTag,
+  onSelect,
+}: {
+  title: string;
+  slices: TagSlice[];
+  tagColors: Record<string, string>;
+  selectedTag: string | null;
+  onSelect: (tag: string) => void;
+}) {
+  const max = Math.max(...slices.map((s) => s.amount), 1);
+  return (
+    <div className="daily-tag-chart">
+      <div className="daily-tag-chart-title">{title}</div>
+      <div className="v-bar-chart">
+        {slices.map(({ tag, amount }) => (
+          <div
+            key={tag}
+            className={`v-bar-col ${selectedTag === tag ? 'selected' : ''}`}
+            onClick={() => onSelect(tag)}
+          >
+            <span className="v-bar-value">¥{amount.toFixed(0)}</span>
+            <div className="v-bar-track">
+              <div
+                className="v-bar-fill"
+                style={{
+                  height: `${Math.max((amount / max) * 100, 4)}%`,
+                  background: tagColors[tag] || '#FF9BB3',
+                }}
+              />
+            </div>
+            <span className="v-bar-label" style={{ color: tagColors[tag] || '#666' }}>{tag}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DailyRecords({ records, onEdit }: Props) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [tagColors, setTagColors] = useState<Record<string, string>>({});
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ tag: string; type: 'expense' | 'income' } | null>(null);
 
   useEffect(() => {
     loadTagColors().then(setTagColors);
   }, []);
 
   useEffect(() => {
-    setSelectedTag(null);
+    setSelected(null);
   }, [selectedDate]);
 
   const dayRecords = useMemo(
@@ -40,27 +99,22 @@ export default function DailyRecords({ records, onEdit }: Props) {
   const dayIncome = dayRecords.filter((r) => r.type === 'income').reduce((s, r) => s + r.amount, 0);
   const dayExpense = dayRecords.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
 
-  // Expenses grouped by tag for the bar chart, biggest first
-  const expenseByTag = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const r of dayRecords) {
-      if (r.type !== 'expense') continue;
-      const t = r.tag || '其他';
-      map[t] = (map[t] || 0) + r.amount;
-    }
-    const entries = Object.entries(map) as [string, number][];
-    const total = entries.reduce((s, [, v]) => s + v, 0);
-    return entries
-      .map(([tag, amount]) => ({ tag, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [dayRecords]);
+  const expenseByTag = useMemo(() => groupByTag(dayRecords, 'expense'), [dayRecords]);
+  const incomeByTag = useMemo(() => groupByTag(dayRecords, 'income'), [dayRecords]);
 
   const dayTotalExpense = expenseByTag.reduce((s, t) => s + t.amount, 0);
+  const dayTotalIncome = incomeByTag.reduce((s, t) => s + t.amount, 0);
 
   const visibleRecords = useMemo(
-    () => (selectedTag ? dayRecords.filter((r) => r.type === 'expense' && (r.tag || '其他') === selectedTag) : dayRecords),
-    [dayRecords, selectedTag]
+    () => (selected
+      ? dayRecords.filter((r) => r.type === selected.type && (r.tag || '其他') === selected.tag)
+      : dayRecords),
+    [dayRecords, selected]
   );
+
+  const toggle = (type: 'expense' | 'income', tag: string) => {
+    setSelected(selected && selected.type === type && selected.tag === tag ? null : { type, tag });
+  };
 
   return (
     <div className="accounting-page">
@@ -87,41 +141,39 @@ export default function DailyRecords({ records, onEdit }: Props) {
       </div>
 
       {expenseByTag.length > 0 && (
-        <div className="daily-tag-chart">
-          <div className="daily-tag-chart-title">
-            📊 当日支出分类（合计 ¥{dayTotalExpense.toFixed(2)}，点标签看明细）
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {expenseByTag.map(({ tag, amount, pct }) => (
-              <div
-                key={tag}
-                className="tag-bar-item"
-                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                style={{ cursor: 'pointer', background: selectedTag === tag ? 'var(--tag-selected)' : 'transparent', borderRadius: 10, padding: '8px 8px' }}
-              >
-                <span className="tag-bar-label" style={{ color: tagColors[tag] || '#666' }}>{tag}</span>
-                <div className="tag-bar-track">
-                  <div
-                    className="tag-bar-fill"
-                    style={{ width: `${Math.max(pct, 1)}%`, background: tagColors[tag] || '#FF9BB3' }}
-                  />
-                </div>
-                <span className="tag-bar-amount">¥{amount.toFixed(0)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TagColumnChart
+          title={`📊 当日支出分类（合计 ¥${dayTotalExpense.toFixed(2)}，点柱子看明细）`}
+          slices={expenseByTag}
+          tagColors={tagColors}
+          selectedTag={selected?.type === 'expense' ? selected.tag : null}
+          onSelect={(tag) => toggle('expense', tag)}
+        />
       )}
 
-      {selectedTag && (
+      {incomeByTag.length > 0 && (
+        <TagColumnChart
+          title={`📊 当日收入分类（合计 ¥${dayTotalIncome.toFixed(2)}，点柱子看明细）`}
+          slices={incomeByTag}
+          tagColors={tagColors}
+          selectedTag={selected?.type === 'income' ? selected.tag : null}
+          onSelect={(tag) => toggle('income', tag)}
+        />
+      )}
+
+      {selected && (
         <div className="daily-filter-bar">
-          <span className="daily-filter-chip">🏷️ {selectedTag} 支出明细</span>
-          <button className="daily-filter-clear" onClick={() => setSelectedTag(null)}>显示全部</button>
+          <span className="daily-filter-chip">
+            🏷️ {selected.tag} {selected.type === 'expense' ? '支出' : '收入'}明细
+          </span>
+          <button className="daily-filter-clear" onClick={() => setSelected(null)}>显示全部</button>
         </div>
       )}
 
       {visibleRecords.length === 0 ? (
-        <EmptyState emoji="📅" title={selectedTag ? `这一天没有 ${selectedTag} 的记录` : '📅 这天没有记录哦~'} />
+        <EmptyState
+          emoji="📅"
+          title={selected ? `这一天没有 ${selected.tag} 的记录` : '📅 这天没有记录哦~'}
+        />
       ) : (
         <div className="ac-records-list">
           {visibleRecords.map((r) => (

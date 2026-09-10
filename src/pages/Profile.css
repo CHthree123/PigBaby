@@ -132,10 +132,131 @@
   color: var(--primary-dark);
 }
 
+.profile-theme-opt:disabled {
+  opacity: 0.35;
+}
+
 .profile-theme-opt.dark.active {
   border-color: #6EE7F0;
   background: rgba(110, 231, 240, 0.14);
   color: #6EE7F0;
+}
+
+/* ===== 门面页：头像区与入口卡 ===== */
+
+.profile-user-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 14px;
+}
+
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary-light, #FFE4EC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  flex-shrink: 0;
+}
+
+.profile-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-user-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.profile-user-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.profile-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.15s;
+}
+
+.profile-entry-card:active {
+  transform: scale(0.98);
+  border-color: var(--primary);
+}
+
+.profile-entry-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.profile-entry-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.profile-entry-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.profile-entry-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.profile-entry-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.profile-link-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 12px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.profile-link-arrow {
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.profile-version {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 0;
 }
 
 .profile-row-note {

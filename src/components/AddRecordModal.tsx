@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { Transaction } from '../storage';
-import { DEFAULT_TAGS, loadCustomTags, saveCustomTags, loadTagColors, saveTagColors, getRandomTagColor, loadTagNotes, incrementTagNote, deleteTagNote, type TagNotes } from '../storage';
+import {
+  loadTagRegistry,
+  addTag,
+  deleteTag,
+  loadData,
+  loadSmartRec,
+  loadIgnoredNotes,
+  addIgnoredNote,
+  type TagDef,
+} from '../storage';
+import { MemoryEngine } from '../tagMemory';
 import './AddRecordModal.css';
 
 interface Props {
@@ -22,12 +32,13 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
   const [note, setNote] = useState(editRecord?.note ?? '');
   const [date, setDate] = useState(editRecord?.date ?? todayStr());
   const [tag, setTag] = useState(editRecord?.tag || '其他');
-  const [allTags, setAllTags] = useState<string[]>(DEFAULT_TAGS);
-  const [tagColors, setTagColors] = useState<Record<string, string>>({});
+  const [tagDefs, setTagDefs] = useState<TagDef[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customTag, setCustomTag] = useState('');
   const [showDelConfirm, setShowDelConfirm] = useState(false);
-  const [tagNotes, setTagNotes] = useState<TagNotes>({});
+  const [allRecords, setAllRecords] = useState<Transaction[]>([]);
+  const [smartRec, setSmartRec] = useState(true);
+  const [ignored, setIgnored] = useState<Record<string, string[]>>({});
   const openTime = useRef(Date.now());
 
   const handleOverlayClick = () => {
@@ -38,25 +49,37 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
 
   useEffect(() => {
     const load = async () => {
-      const custom = await loadCustomTags();
-      const colors = await loadTagColors();
-      const notes = await loadTagNotes();
-      setAllTags([...DEFAULT_TAGS, ...custom]);
-      setTagColors(colors);
-      setTagNotes(notes);
+      const reg = await loadTagRegistry();
+      const defs = type === 'income' ? reg.income : reg.expense;
+      const data = await loadData();
+      setTagDefs(defs);
+      setAllRecords(data.records);
+      setSmartRec(await loadSmartRec());
+      setIgnored(await loadIgnoredNotes());
+      setTag((prev) => {
+        if (isEdit || defs.some((d) => d.name === prev)) return prev;
+        return defs.find((d) => d.name === '其他')?.name ?? defs[0]?.name ?? prev;
+      });
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Notes remembered under the currently selected tag, most used first
+  const engine = useMemo(() => new MemoryEngine(allRecords), [allRecords]);
+
+  // Notes remembered under the currently selected tag (from history, time-of-day first)
   const rememberedNotes = useMemo(() => {
-    if (type !== 'expense' || !tag) return [];
-    const notes = tagNotes[tag];
-    if (!notes) return [];
-    return Object.entries(notes)
-      .map(([note, count]) => ({ note, count }))
-      .sort((a, b) => b.count - a.count);
-  }, [type, tag, tagNotes]);
+    if (!smartRec || !tag) return [];
+    return engine.suggestNotes(tag, undefined, 6, ignored[tag] || []);
+  }, [engine, tag, smartRec, ignored]);
+
+  // 输入备注时按历史推荐标签
+  const tagSuggestions = useMemo(() => {
+    if (!smartRec || !note.trim()) return [];
+    const names = new Set(tagDefs.map((d) => d.name));
+    return engine.suggestTags(note, undefined, 5)
+      .filter((s) => names.has(s.tag) && s.tag !== tag);
+  }, [engine, note, smartRec, tagDefs, tag]);
 
   useEffect(() => {
     if (editRecord) {
@@ -69,22 +92,15 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
 
   const handleAddCustomTag = async () => {
     const t = customTag.trim();
-    if (!t || allTags.includes(t)) {
+    if (!t) {
       setShowCustomInput(false);
-      setCustomTag('');
       return;
     }
-    const updated = [...allTags, t];
-    setAllTags(updated);
-    setTag(t);
-    const custom = await loadCustomTags();
-    await saveCustomTags([...custom, t]);
-    const colors = await loadTagColors();
-    if (!colors[t]) {
-      colors[t] = getRandomTagColor();
-      await saveTagColors(colors);
-      setTagColors({ ...colors });
-    }
+    const created = await addTag(type, t);
+    const reg = await loadTagRegistry();
+    const defs = type === 'income' ? reg.income : reg.expense;
+    setTagDefs(defs);
+    if (created || defs.some((d) => d.name === t)) setTag(t);
     setShowCustomInput(false);
     setCustomTag('');
   };
@@ -100,25 +116,25 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
       note: note.trim(),
       date,
       month: date.slice(0, 7),
-      tag: type === 'expense' ? tag : '',
+      tag,
     };
-    if (type === 'expense' && tag && note.trim()) {
-      await incrementTagNote(tag, note.trim());
-    }
     onSave(record);
   };
 
-  const handleDeleteNote = async (note: string) => {
-    await deleteTagNote(tag, note);
-    setTagNotes(await loadTagNotes());
+  const handleIgnoreNote = async (note: string) => {
+    await addIgnoredNote(tag, note);
+    setIgnored(await loadIgnoredNotes());
   };
 
-  const handleDeleteCustomTag = async (t: string) => {
-    if (!window.confirm(`删除自定义标签「${t}」？已记的账不受影响。`)) return;
-    const custom = await loadCustomTags();
-    await saveCustomTags(custom.filter((c) => c !== t));
-    setAllTags(allTags.filter((x) => x !== t));
-    if (tag === t) setTag('其他');
+  const handleDeleteTag = async (t: string) => {
+    if (!window.confirm(`删除标签「${t}」？已记的账不受影响，可随时重新添加。`)) return;
+    await deleteTag(type, t);
+    const reg = await loadTagRegistry();
+    const defs = type === 'income' ? reg.income : reg.expense;
+    setTagDefs(defs);
+    if (tag === t) {
+      setTag(defs.find((d) => d.name === '其他')?.name ?? defs[0]?.name ?? '其他');
+    }
   };
 
   const handleDelete = () => {
@@ -164,21 +180,30 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
           />
         </div>
 
-        {type === 'expense' && (
-          <div className="arm-field">
-            <label className="arm-label">标签</label>
-            <div className="tag-selector">
-              {allTags.map((t) => (
-                <span key={t} className="tag-chip-wrap">
-                  <button
-                    className={`tag-chip ${tag === t ? 'selected' : ''}`}
-                    style={tag === t ? { background: tagColors[t] || '#FF9BB3' } : {}}
-                    onClick={() => setTag(t)}
-                  >
-                    {t}
+        <div className="arm-field">
+          <label className="arm-label">标签</label>
+            {tagSuggestions.length > 0 && (
+              <div className="arm-tag-suggest">
+                <span className="arm-tag-suggest-label">💡 推荐</span>
+                {tagSuggestions.map((s) => (
+                  <button key={s.tag} className="arm-tag-suggest-chip" onClick={() => setTag(s.tag)}>
+                    {s.tag}
                   </button>
-                  {!DEFAULT_TAGS.includes(t) && (
-                    <b className="tag-chip-del" onClick={() => handleDeleteCustomTag(t)}>✕</b>
+                ))}
+              </div>
+            )}
+            <div className="tag-selector">
+              {tagDefs.map((d) => (
+                <span key={d.name} className="tag-chip-wrap">
+                  <button
+                    className={`tag-chip ${tag === d.name ? 'selected' : ''}`}
+                    style={tag === d.name ? { background: d.color || '#FF9BB3' } : {}}
+                    onClick={() => setTag(d.name)}
+                  >
+                    {d.name}
+                  </button>
+                  {tagDefs.length > 1 && (
+                    <b className="tag-chip-del" onClick={() => handleDeleteTag(d.name)}>✕</b>
                   )}
                 </span>
               ))}
@@ -212,15 +237,14 @@ export default function AddRecordModal({ type, editRecord, onSave, onDelete, onC
                       <i className="arm-note-memory-count">{count}次</i>
                       <b
                         className="arm-note-memory-del"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteNote(n); }}
+                        onClick={(e) => { e.stopPropagation(); handleIgnoreNote(n); }}
                       >✕</b>
                     </span>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        )}
+        </div>
 
         <div className="arm-field">
           <label className="arm-label">日期</label>

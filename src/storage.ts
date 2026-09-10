@@ -164,11 +164,11 @@ export async function loadData(): Promise<AppData> {
     return { monthlyBudget: 3000, records: [] };
   }
   const parsed = JSON.parse(value);
-  // migrate old records without tag field
+  // migrate old records without tag field（v1.7 起收入也有标签）
   if (parsed.records) {
     parsed.records = parsed.records.map((r: Transaction) => ({
       ...r,
-      tag: r.tag || (r.type === 'expense' ? '其他' : ''),
+      tag: r.tag || '其他',
     }));
   }
   return parsed as AppData;
@@ -178,7 +178,7 @@ export async function saveData(data: AppData): Promise<void> {
   await Preferences.set({ key: STORAGE_KEY, value: JSON.stringify(data) });
 }
 
-// ========== Custom Tags ==========
+// ========== Custom Tags (legacy: 仅在迁移到标签表时读取) ==========
 
 export async function loadCustomTags(): Promise<string[]> {
   const { value } = await Preferences.get({ key: CUSTOM_TAGS_KEY });
@@ -186,23 +186,144 @@ export async function loadCustomTags(): Promise<string[]> {
   return JSON.parse(value) as string[];
 }
 
-export async function saveCustomTags(tags: string[]): Promise<void> {
-  await Preferences.set({ key: CUSTOM_TAGS_KEY, value: JSON.stringify(tags) });
+// ========== Tag Registry（统一标签表：新增/重命名/换色/删除） ==========
+
+export interface TagDef {
+  name: string;
+  color: string;
+  order: number;
 }
 
-// ========== Tag Colors ==========
+export interface TagRegistry {
+  expense: TagDef[];
+  income: TagDef[];
+}
 
+export const DEFAULT_INCOME_TAGS = ['工资', '红包', '理财', '报销', '转账', '其他'];
+
+const INCOME_TAG_COLORS: Record<string, string> = {
+  '工资': '#7BC67E',
+  '红包': '#FF6B6B',
+  '理财': '#FFD93D',
+  '报销': '#6BC5D9',
+  '转账': '#C084FC',
+  '其他': '#9CA3AF',
+};
+
+const TAGS_V2_KEY = 'pigbaby_tags_v2';
+
+export const TAG_COLOR_POOL = [
+  '#FF6B6B', '#6BC5D9', '#FFD93D', '#C084FC', '#7BC67E',
+  '#F97316', '#8B5CF6', '#EC4899', '#14B8A6', '#6366F1',
+];
+
+function defaultIncomeTagDefs(): TagDef[] {
+  return DEFAULT_INCOME_TAGS.map((name, i) => ({
+    name,
+    color: INCOME_TAG_COLORS[name] || '#9CA3AF',
+    order: i,
+  }));
+}
+
+export async function loadTagRegistry(): Promise<TagRegistry> {
+  const { value } = await Preferences.get({ key: TAGS_V2_KEY });
+  if (value) {
+    const parsed = JSON.parse(value) as TagRegistry;
+    if (!parsed.income || parsed.income.length === 0) parsed.income = defaultIncomeTagDefs();
+    return parsed;
+  }
+  // 一次性迁移：内置标签 + 自定义标签 + 已保存颜色
+  const custom = await loadCustomTags();
+  const { value: colorsRaw } = await Preferences.get({ key: TAG_COLORS_KEY });
+  const legacyColors: Record<string, string> = colorsRaw
+    ? { ...TAG_COLORS, ...JSON.parse(colorsRaw) }
+    : { ...TAG_COLORS };
+  const names = [...DEFAULT_TAGS];
+  for (const t of custom) if (!names.includes(t)) names.push(t);
+  const registry: TagRegistry = {
+    expense: names.map((name, i) => ({
+      name,
+      color: legacyColors[name] || getRandomTagColor(),
+      order: i,
+    })),
+    income: defaultIncomeTagDefs(),
+  };
+  await saveTagRegistry(registry);
+  return registry;
+}
+
+export async function saveTagRegistry(reg: TagRegistry): Promise<void> {
+  await Preferences.set({ key: TAGS_V2_KEY, value: JSON.stringify(reg) });
+}
+
+export async function addTag(type: 'expense' | 'income', name: string): Promise<boolean> {
+  const t = name.trim();
+  if (!t) return false;
+  const reg = await loadTagRegistry();
+  if (reg[type].some((d) => d.name === t)) return false;
+  reg[type] = [...reg[type], { name: t, color: getRandomTagColor(), order: reg[type].length }];
+  await saveTagRegistry(reg);
+  return true;
+}
+
+export async function deleteTag(type: 'expense' | 'income', name: string): Promise<void> {
+  const reg = await loadTagRegistry();
+  reg[type] = reg[type].filter((d) => d.name !== name);
+  await saveTagRegistry(reg);
+}
+
+export async function setTagColor(type: 'expense' | 'income', name: string, color: string): Promise<void> {
+  const reg = await loadTagRegistry();
+  reg[type] = reg[type].map((d) => (d.name === name ? { ...d, color } : d));
+  await saveTagRegistry(reg);
+}
+
+// 重命名：同步更新标签表、全部历史记录、备注记忆（自动记账规则接入后也一并更新）
+export async function renameTag(
+  type: 'expense' | 'income',
+  oldName: string,
+  newName: string
+): Promise<boolean> {
+  const t = newName.trim();
+  if (!t || t === oldName) return false;
+  const reg = await loadTagRegistry();
+  if (reg[type].some((d) => d.name === t)) return false;
+  reg[type] = reg[type].map((d) => (d.name === oldName ? { ...d, name: t } : d));
+  await saveTagRegistry(reg);
+
+  const data = await loadData();
+  let changed = false;
+  const records = data.records.map((r) => {
+    if (r.type === type && r.tag === oldName) {
+      changed = true;
+      return { ...r, tag: t };
+    }
+    return r;
+  });
+  if (changed) await saveData({ ...data, records });
+
+  const tn = await loadTagNotes();
+  if (tn[oldName]) {
+    const target = tn[t] || {};
+    for (const [note, count] of Object.entries(tn[oldName])) {
+      target[note] = (target[note] || 0) + count;
+    }
+    tn[t] = target;
+    delete tn[oldName];
+    await saveTagNotes(tn);
+  }
+  return true;
+}
+
+// 颜色总表（含两种类型），供记录列表 / 统计 / 图表读取
 export async function loadTagColors(): Promise<Record<string, string>> {
-  const { value } = await Preferences.get({ key: TAG_COLORS_KEY });
-  if (!value) return { ...TAG_COLORS };
-  return { ...TAG_COLORS, ...JSON.parse(value) };
+  const reg = await loadTagRegistry();
+  const out: Record<string, string> = { ...TAG_COLORS };
+  for (const d of [...reg.expense, ...reg.income]) out[d.name] = d.color;
+  return out;
 }
 
-export async function saveTagColors(colors: Record<string, string>): Promise<void> {
-  await Preferences.set({ key: TAG_COLORS_KEY, value: JSON.stringify(colors) });
-}
-
-// ========== Tag Notes (remembered note per tag, keyed by usage count) ==========
+// ========== Tag Notes (legacy: 旧版备注计数器，仅重命名时保持键名同步) ==========
 
 export type TagNotes = Record<string, Record<string, number>>; // tag -> note -> count
 
@@ -215,27 +336,6 @@ export async function loadTagNotes(): Promise<TagNotes> {
 export async function saveTagNotes(tn: TagNotes): Promise<void> {
   await Preferences.set({ key: TAG_NOTES_KEY, value: JSON.stringify(tn) });
 }
-
-export async function incrementTagNote(tag: string, note: string): Promise<void> {
-  const tn = await loadTagNotes();
-  tn[tag] = tn[tag] || {};
-  tn[tag][note] = (tn[tag][note] || 0) + 1;
-  await saveTagNotes(tn);
-}
-
-export async function deleteTagNote(tag: string, note: string): Promise<void> {
-  const tn = await loadTagNotes();
-  if (tn[tag]) {
-    delete tn[tag][note];
-    if (Object.keys(tn[tag]).length === 0) delete tn[tag];
-    await saveTagNotes(tn);
-  }
-}
-
-const TAG_COLOR_POOL = [
-  '#FF6B6B', '#6BC5D9', '#FFD93D', '#C084FC', '#7BC67E',
-  '#F97316', '#8B5CF6', '#EC4899', '#14B8A6', '#6366F1',
-];
 
 export function getRandomTagColor(): string {
   return TAG_COLOR_POOL[Math.floor(Math.random() * TAG_COLOR_POOL.length)];
@@ -304,6 +404,96 @@ export async function loadProjects(): Promise<ProjectsData> {
 
 export async function saveProjects(data: ProjectsData): Promise<void> {
   await Preferences.set({ key: PROJECTS_KEY, value: JSON.stringify(data) });
+}
+
+// ========== App Features（功能模块开关）与 小猪按钮 ==========
+
+export interface AppFeatures {
+  accounting: boolean;
+  tasks: boolean;
+}
+
+const FEATURES_KEY = 'pigbaby_features';
+const PIG_ACTION_KEY = 'pigbaby_pig_action';
+
+export async function loadFeatures(): Promise<AppFeatures> {
+  const { value } = await Preferences.get({ key: FEATURES_KEY });
+  if (!value) return { accounting: true, tasks: true };
+  const parsed = JSON.parse(value) as Partial<AppFeatures>;
+  return { accounting: parsed.accounting !== false, tasks: parsed.tasks !== false };
+}
+
+export async function saveFeatures(f: AppFeatures): Promise<void> {
+  await Preferences.set({ key: FEATURES_KEY, value: JSON.stringify(f) });
+}
+
+export type PigAction = 'expense' | 'task';
+
+export async function loadPigAction(): Promise<PigAction> {
+  const { value } = await Preferences.get({ key: PIG_ACTION_KEY });
+  return value === 'task' ? 'task' : 'expense';
+}
+
+export async function savePigAction(a: PigAction): Promise<void> {
+  await Preferences.set({ key: PIG_ACTION_KEY, value: a });
+}
+
+// ========== 记账模式（预算制 / 余额制） ==========
+
+export type MoneyMode = 'budget' | 'balance';
+
+export interface InitialBalance {
+  amount: number;
+  fromDate: string;   // YYYY-MM-DD，余额从这个日期起计算
+}
+
+const MONEY_MODE_KEY = 'pigbaby_money_mode';
+const INITIAL_BALANCE_KEY = 'pigbaby_initial_balance';
+
+export async function loadMoneyMode(): Promise<MoneyMode> {
+  const { value } = await Preferences.get({ key: MONEY_MODE_KEY });
+  return value === 'balance' ? 'balance' : 'budget';
+}
+
+export async function saveMoneyMode(m: MoneyMode): Promise<void> {
+  await Preferences.set({ key: MONEY_MODE_KEY, value: m });
+}
+
+export async function loadInitialBalance(): Promise<InitialBalance | null> {
+  const { value } = await Preferences.get({ key: INITIAL_BALANCE_KEY });
+  if (!value) return null;
+  return JSON.parse(value) as InitialBalance;
+}
+
+export async function saveInitialBalance(b: InitialBalance): Promise<void> {
+  await Preferences.set({ key: INITIAL_BALANCE_KEY, value: JSON.stringify(b) });
+}
+
+// ========== 智能推荐（记账记忆）开关与忽略列表 ==========
+
+const SMART_REC_KEY = 'pigbaby_smart_rec';
+const IGNORED_NOTES_KEY = 'pigbaby_memory_ignored';
+
+export async function loadSmartRec(): Promise<boolean> {
+  const { value } = await Preferences.get({ key: SMART_REC_KEY });
+  return value !== '0';
+}
+
+export async function saveSmartRec(on: boolean): Promise<void> {
+  await Preferences.set({ key: SMART_REC_KEY, value: on ? '1' : '0' });
+}
+
+export async function loadIgnoredNotes(): Promise<Record<string, string[]>> {
+  const { value } = await Preferences.get({ key: IGNORED_NOTES_KEY });
+  return value ? (JSON.parse(value) as Record<string, string[]>) : {};
+}
+
+export async function addIgnoredNote(tag: string, note: string): Promise<void> {
+  const ig = await loadIgnoredNotes();
+  const list = ig[tag] || [];
+  if (!list.includes(note)) list.push(note);
+  ig[tag] = list;
+  await Preferences.set({ key: IGNORED_NOTES_KEY, value: JSON.stringify(ig) });
 }
 
 // ========== Theme ==========

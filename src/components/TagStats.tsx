@@ -11,6 +11,7 @@ interface Props {
 }
 
 type StatsMode = 'month' | 'day';
+type Flow = 'expense' | 'income';
 
 function todayStr(): string {
   const d = new Date();
@@ -35,68 +36,60 @@ function sortChronological(records: Transaction[]): Transaction[] {
   });
 }
 
+function tagTotals(records: Transaction[]) {
+  const map: Record<string, number> = {};
+  for (const r of records) {
+    const t = r.tag || '其他';
+    map[t] = (map[t] || 0) + r.amount;
+  }
+  const entries = Object.entries(map) as [string, number][];
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  return entries
+    .map(([tag, amount]) => ({ tag, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 export default function TagStats({ records, currentMonth, onMonthChange, onEdit }: Props) {
   const [tagColors, setTagColors] = useState<Record<string, string>>({});
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [mode, setMode] = useState<StatsMode>('month');
+  const [flow, setFlow] = useState<Flow>('expense');
   const [selectedDate, setSelectedDate] = useState(todayStr());
 
   useEffect(() => {
     loadTagColors().then(setTagColors);
   }, []);
 
+  const flowLabel = flow === 'expense' ? '支出' : '收入';
+
   // Month stats
-  const monthExpenses = useMemo(
-    () => records.filter((r) => r.month === currentMonth && r.type === 'expense'),
-    [records, currentMonth]
+  const monthRecords = useMemo(
+    () => records.filter((r) => r.month === currentMonth && r.type === flow),
+    [records, currentMonth, flow]
   );
 
-  const tagStats = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const r of monthExpenses) {
-      const t = r.tag || '其他';
-      map[t] = (map[t] || 0) + r.amount;
-    }
-    const entries = Object.entries(map) as [string, number][];
-    const total = entries.reduce((s, [, v]) => s + v, 0);
-    return entries
-      .map(([tag, amount]) => ({ tag, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [monthExpenses]);
-
-  const monthTotalExpense = tagStats.reduce((s, t) => s + t.amount, 0);
+  const tagStats = useMemo(() => tagTotals(monthRecords), [monthRecords]);
+  const monthTotal = tagStats.reduce((s, t) => s + t.amount, 0);
 
   // Day stats
-  const dayExpenses = useMemo(
-    () => records.filter((r) => r.date === selectedDate && r.type === 'expense'),
-    [records, selectedDate]
+  const dayRecords = useMemo(
+    () => records.filter((r) => r.date === selectedDate && r.type === flow),
+    [records, selectedDate, flow]
   );
 
-  const dayTagStats = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const r of dayExpenses) {
-      const t = r.tag || '其他';
-      map[t] = (map[t] || 0) + r.amount;
-    }
-    const entries = Object.entries(map) as [string, number][];
-    const total = entries.reduce((s, [, v]) => s + v, 0);
-    return entries
-      .map(([tag, amount]) => ({ tag, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [dayExpenses]);
-
-  const dayTotalExpense = dayTagStats.reduce((s, t) => s + t.amount, 0);
+  const dayTagStats = useMemo(() => tagTotals(dayRecords), [dayRecords]);
+  const dayTotal = dayTagStats.reduce((s, t) => s + t.amount, 0);
 
   // Drill-down records based on mode
   const tagRecords = useMemo(() => {
     if (!selectedTag) return [];
-    const source = mode === 'month' ? monthExpenses : dayExpenses;
+    const source = mode === 'month' ? monthRecords : dayRecords;
     return sortChronological(source.filter((r) => (r.tag || '其他') === selectedTag));
-  }, [mode, monthExpenses, dayExpenses, selectedTag]);
+  }, [mode, monthRecords, dayRecords, selectedTag]);
 
   // Active stats based on mode
   const activeStats = mode === 'month' ? tagStats : dayTagStats;
-  const activeTotal = mode === 'month' ? monthTotalExpense : dayTotalExpense;
+  const activeTotal = mode === 'month' ? monthTotal : dayTotal;
 
   const prevMonth = () => {
     const [y, m] = currentMonth.split('-').map(Number);
@@ -124,6 +117,12 @@ export default function TagStats({ records, currentMonth, onMonthChange, onEdit 
         <button className={`tag-mode-btn ${mode === 'day' ? 'active' : ''}`} onClick={() => { setMode('day'); setSelectedTag(null); }}>📆 日统计</button>
       </div>
 
+      {/* Flow toggle */}
+      <div className="tag-mode-toggle">
+        <button className={`tag-mode-btn ${flow === 'expense' ? 'active' : ''}`} onClick={() => { setFlow('expense'); setSelectedTag(null); }}>💸 支出</button>
+        <button className={`tag-mode-btn ${flow === 'income' ? 'active' : ''}`} onClick={() => { setFlow('income'); setSelectedTag(null); }}>💰 收入</button>
+      </div>
+
       {/* Header based on mode */}
       {mode === 'month' ? (
         <div className="tag-stats-header">
@@ -140,11 +139,14 @@ export default function TagStats({ records, currentMonth, onMonthChange, onEdit 
       )}
 
       {activeStats.length === 0 ? (
-        <EmptyState emoji="🏷️" title={mode === 'month' ? '这个月还没有支出记录~' : '这天还没有支出记录~'} />
+        <EmptyState
+          emoji="🏷️"
+          title={mode === 'month' ? `这个月还没有${flowLabel}记录~` : `这天还没有${flowLabel}记录~`}
+        />
       ) : (
         <>
           <div className="tag-stats-total">
-            {mode === 'month' ? '本月' : '当日'}总支出：<strong>¥{activeTotal.toFixed(2)}</strong>
+            {mode === 'month' ? '本月' : '当日'}总{flowLabel}：<strong>¥{activeTotal.toFixed(2)}</strong>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {activeStats.map(({ tag, amount, pct }) => (
@@ -183,10 +185,12 @@ export default function TagStats({ records, currentMonth, onMonthChange, onEdit 
                 {tagRecords.map((r) => (
                   <div key={r.id} className="ac-record-item" onClick={() => onEdit?.(r)}>
                     <div className="ac-record-info">
-                      <div className="ac-record-note">{r.note || '支出'}</div>
+                      <div className="ac-record-note">{r.note || flowLabel}</div>
                       <div className="ac-record-date">{formatDate(r.date)}</div>
                     </div>
-                    <div className="ac-record-amount expense">−¥{r.amount.toFixed(2)}</div>
+                    <div className={`ac-record-amount ${r.type}`}>
+                      {r.type === 'income' ? '+' : '−'}¥{r.amount.toFixed(2)}
+                    </div>
                   </div>
                 ))}
               </div>

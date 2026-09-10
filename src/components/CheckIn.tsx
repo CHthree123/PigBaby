@@ -51,7 +51,13 @@ export default function CheckIn() {
   const [editingGoal, setEditingGoal] = useState<CheckInGoal | null>(null);
   const [goalName, setGoalName] = useState('');
   const [goalType, setGoalType] = useState<'weekly' | 'monthly'>('weekly');
-  const [goalCount, setGoalCount] = useState(3);
+  const [goalCountInput, setGoalCountInput] = useState('3');
+
+  const clampCount = (n: number, t: 'weekly' | 'monthly') => {
+    const max = t === 'weekly' ? 7 : 31;
+    if (isNaN(n)) return 1;
+    return Math.min(max, Math.max(1, Math.round(n)));
+  };
 
   // Summary
   const [summaryText, setSummaryText] = useState('');
@@ -113,11 +119,12 @@ export default function CheckIn() {
 
   const handleSaveGoal = async () => {
     if (!goalName.trim()) return;
+    const count = clampCount(parseInt(goalCountInput, 10), goalType);
     const updated = { ...data };
     if (editingGoal) {
       updated.goals = updated.goals.map((g) =>
         g.id === editingGoal.id
-          ? { ...g, name: goalName.trim(), type: goalType, targetCount: goalCount }
+          ? { ...g, name: goalName.trim(), type: goalType, targetCount: count }
           : g
       );
     } else {
@@ -127,7 +134,7 @@ export default function CheckIn() {
           id: Date.now().toString(),
           name: goalName.trim(),
           type: goalType,
-          targetCount: goalCount,
+          targetCount: count,
           createdAt: todayStr(),
         },
       ];
@@ -159,7 +166,7 @@ export default function CheckIn() {
     setEditingGoal(goal);
     setGoalName(goal.name);
     setGoalType(goal.type);
-    setGoalCount(goal.targetCount);
+    setGoalCountInput(String(goal.targetCount));
     setShowSettings(true);
   };
 
@@ -167,7 +174,7 @@ export default function CheckIn() {
     setEditingGoal(null);
     setGoalName('');
     setGoalType('weekly');
-    setGoalCount(3);
+    setGoalCountInput('3');
     setShowSettings(true);
   };
 
@@ -487,12 +494,12 @@ export default function CheckIn() {
                 <button
                   className="tag-chip" type="button"
                   style={{ flex: 1, padding: '10px 20px', background: goalType === 'weekly' ? 'var(--primary)' : 'var(--bg)', color: goalType === 'weekly' ? 'var(--on-primary)' : 'var(--text-secondary)' }}
-                  onClick={() => { setGoalType('weekly'); setGoalCount(Math.min(goalCount, 7)); }}
+                  onClick={() => { setGoalType('weekly'); setGoalCountInput(String(clampCount(parseInt(goalCountInput, 10), 'weekly'))); }}
                 >📅 周目标</button>
                 <button
                   className="tag-chip" type="button"
                   style={{ flex: 1, padding: '10px 20px', background: goalType === 'monthly' ? 'var(--primary)' : 'var(--bg)', color: goalType === 'monthly' ? 'var(--on-primary)' : 'var(--text-secondary)' }}
-                  onClick={() => { setGoalType('monthly'); setGoalCount(Math.min(goalCount, 31)); }}
+                  onClick={() => { setGoalType('monthly'); setGoalCountInput(String(clampCount(parseInt(goalCountInput, 10), 'monthly'))); }}
                 >🗓 月目标</button>
               </div>
             </div>
@@ -500,11 +507,15 @@ export default function CheckIn() {
               <label className="arm-label">
                 {goalType === 'weekly' ? '每周次数' : '每月天数'}（{goalType === 'weekly' ? '1-7' : '1-31'}）
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <button className="mini-cal-nav" onClick={() => setGoalCount((c) => Math.max(1, c - 1))}>−</button>
-                <span style={{ fontSize: 24, fontWeight: 700, minWidth: 40, textAlign: 'center' }}>{goalCount}</span>
-                <button className="mini-cal-nav" onClick={() => setGoalCount((c) => Math.min(goalType === 'weekly' ? 7 : 31, c + 1))}>+</button>
-              </div>
+              <input
+                className="arm-input"
+                type="number"
+                inputMode="numeric"
+                placeholder={goalType === 'weekly' ? '1-7' : '1-31'}
+                value={goalCountInput}
+                onChange={(e) => setGoalCountInput(e.target.value.replace(/[^\d]/g, ''))}
+                onBlur={() => setGoalCountInput(String(clampCount(parseInt(goalCountInput, 10), goalType)))}
+              />
             </div>
             {editingGoal && (
               <div className="arm-field" style={{ textAlign: 'center' }}>
