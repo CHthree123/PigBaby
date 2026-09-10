@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { AutoCapture, syncCaptures, isNativeCapture } from '../autoCapture';
+import FeatureRow, { ToggleButton } from '../components/FeatureRow';
 import {
   sysCalendarAvailable,
   loadSysCalEnabled,
@@ -136,48 +137,47 @@ export default function ProfilePermissions() {
       <div className="profile-section">
         <div className="profile-section-title">🔐 系统授权</div>
         <div className="profile-card">
-          <div className="profile-row">
-            <span className="profile-row-title">🔔 自动记账（通知监听）</span>
-            <span className={`profile-row-status ${notifAccess ? 'on' : ''}`}>
+          <FeatureRow
+            title="🔔 自动记账（通知监听）"
+            desc={'授权「通知使用权」后，付款/收款时按微信、支付宝的通知自动生成待确认草稿（只解析这两个应用的通知，其他应用不读取、不保存）。需在个人中心打开总开关后生效。'}
+          >
+            <span className={`pf-status ${notifAccess ? 'on' : ''}`}>
               {isNativeCapture ? (notifAccess ? '已授权' : '未授权') : '仅安卓端'}
             </span>
-            <button className="sms-auto-btn" onClick={openNotifSettings} disabled={!isNativeCapture}>去开启</button>
-            <button className="sms-auto-btn" onClick={runSync} disabled={!isNativeCapture || syncing}>
-              {syncing ? '同步中…' : '立即同步'}
+            <button
+              className="pf-toggle"
+              onClick={notifAccess ? runSync : openNotifSettings}
+              disabled={!isNativeCapture || syncing}
+            >
+              {notifAccess ? (syncing ? '同步中…' : '立即同步') : '去授权'}
             </button>
-          </div>
-          <div className="profile-row-note">
-            授权"通知使用权"后，付款/收款时按微信、支付宝的通知自动生成待确认草稿（只解析这两个应用的通知，其他应用不读取、不保存）。
-            需在个人中心打开总开关后生效。
-          </div>
-          {syncStatus && <div className="sms-auto-status">{syncStatus}</div>}
+          </FeatureRow>
+          {syncStatus && <div className="pf-desc">{syncStatus}</div>}
         </div>
         <div className="profile-card">
-          <div className="profile-row">
-            <span className="profile-row-title">🔔 通知权限（任务提醒）</span>
-            <span className={`profile-row-status ${notifStatus === '已开启' ? 'on' : ''}`}>{notifStatus}</span>
-            <button className="sms-auto-btn" onClick={requestNotif}>申请</button>
-          </div>
+          <FeatureRow title="🔔 通知权限（任务提醒）">
+            <span className={`pf-status ${notifStatus === '已开启' ? 'on' : ''}`}>{notifStatus}</span>
+            <button className="pf-toggle" onClick={requestNotif}>申请</button>
+          </FeatureRow>
           <div className="profile-divider" />
-          <div className="profile-row">
-            <span className="profile-row-title">⏰ 精确闹钟（熄屏准点提醒）</span>
-            <span className={`profile-row-status ${alarmStatus === '已开启' ? 'on' : ''}`}>{alarmStatus}</span>
-            <button className="sms-auto-btn" onClick={openAlarmSettings}>去开启</button>
-          </div>
+          <FeatureRow title="⏰ 精确闹钟（熄屏准点提醒）">
+            <span className={`pf-status ${alarmStatus === '已开启' ? 'on' : ''}`}>{alarmStatus}</span>
+            <button className="pf-toggle" onClick={openAlarmSettings}>去开启</button>
+          </FeatureRow>
           <div className="profile-divider" />
-          <div className="profile-row">
-            <span className="profile-row-title">📅 节假日同步手机日历</span>
-            <span className={`profile-row-status ${calSync === 'granted' ? 'on' : ''}`}>
-              {calSync === 'checking' ? '检查中…' : calSync === 'granted' ? '已开启·实时' : calSync === 'denied' ? '未授权' : '未开启'}
-            </span>
-            <button className="sms-auto-btn" onClick={handleCalSyncToggle} disabled={calSync === 'checking'}>
-              {calSync === 'checking' ? '…' : calSync !== 'off' ? '关闭' : '开启并授权'}
-            </button>
-          </div>
-          <div className="profile-row-note">
-            开启后，打卡与日历页的节假日以手机系统日历实时为准（需授权读取日历；手机需已订阅「节假日」日历）。
-            未授权或手机没有订阅时，自动显示内置节假日表。
-          </div>
+          <FeatureRow
+            title="📅 节假日同步手机日历"
+            desc="开启后，打卡与日历页的节假日以手机系统日历实时为准（需授权读取日历；手机需已订阅「节假日」日历）。未授权或手机没有订阅时，自动显示内置节假日表。"
+          >
+            <ToggleButton
+              on={calSync === 'granted' || calSync === 'denied'}
+              onToggle={handleCalSyncToggle}
+              disabled={calSync === 'checking'}
+            />
+          </FeatureRow>
+          {calSync === 'denied' && (
+            <div className="pf-desc">未授权读取日历，当前显示内置节假日表；点上方按钮重新授权。</div>
+          )}
         </div>
       </div>
     </div>
