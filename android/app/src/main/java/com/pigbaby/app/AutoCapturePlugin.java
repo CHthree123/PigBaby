@@ -82,6 +82,49 @@ public class AutoCapturePlugin extends Plugin {
         }
     }
 
+    private boolean isAccessibilityEnabled() {
+        String enabled = Settings.Secure.getString(
+                getContext().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (enabled == null) return false;
+        String pkg = getContext().getPackageName();
+        return enabled.contains(pkg + "/" + PigAccessibilityService.class.getName())
+                || enabled.contains(pkg + "/.PigAccessibilityService");
+    }
+
+    @PluginMethod
+    public void checkAccessibility(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("enabled", isAccessibilityEnabled());
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void openAccessibilitySettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("无法打开无障碍设置：" + e.getMessage());
+        }
+    }
+
+    /** 无障碍读取到的页面文本（实验，供校准提取规则） */
+    @PluginMethod
+    public void pullScreens(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("screens", AccessStore.peek(getContext()));
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void clearScreens(PluginCall call) {
+        JSArray ids = call.getArray("ids");
+        AccessStore.clear(getContext(), ids);
+        call.resolve();
+    }
+
     @PluginMethod
     public void status(PluginCall call) {
         JSObject ret = new JSObject();

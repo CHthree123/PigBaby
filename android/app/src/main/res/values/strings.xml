@@ -4,4 +4,5 @@
     <string name="title_activity_main">PigBaby</string>
     <string name="package_name">com.pigbaby.app</string>
     <string name="custom_url_scheme">com.pigbaby.app</string>
+    <string name="accessibility_description">实验功能：只读取微信与支付宝的账单/支付页面文字，用于补记系统通知抓不到的收支。其他应用不读取、不处理，文字只保存在本机。</string>
 </resources>

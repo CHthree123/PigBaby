@@ -35,6 +35,15 @@ export interface RawCapture {
   when: number;     // ms
 }
 
+// 无障碍读取到的页面（实验：微信/支付宝的账单、支付、微信支付聊天页）
+export interface AccessScreen {
+  id: string;
+  pkg: string;
+  app: string;
+  text: string;
+  when: number;
+}
+
 interface AutoCapturePlugin {
   checkEnabled(): Promise<{ enabled: boolean }>;
   status(): Promise<{ enabled: boolean; connected: boolean }>;
@@ -42,6 +51,10 @@ interface AutoCapturePlugin {
   scanActive(): Promise<{ added: number }>;
   pullCaptured(): Promise<{ captures: RawCapture[] }>;
   clearCaptured(options: { ids: string[] }): Promise<void>;
+  checkAccessibility(): Promise<{ enabled: boolean }>;
+  openAccessibilitySettings(): Promise<void>;
+  pullScreens(): Promise<{ screens: AccessScreen[] }>;
+  clearScreens(options: { ids: string[] }): Promise<void>;
   addListener(
     eventName: 'capture',
     listenerFunc: (data: { fresh: boolean }) => void

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AutoCapture, parseCapture, captureText, isNativeCapture, type RawCapture, type ParseResult } from '../autoCapture';
+import { AutoCapture, parseCapture, captureText, isNativeCapture, type RawCapture, type ParseResult, type AccessScreen } from '../autoCapture';
 import { loadData, saveData, loadTagRegistry, loadPendingCaptures, loadCaptureLog, type CaptureLogEntry } from '../storage';
 import { MemoryEngine } from '../tagMemory';
 import AddRecordModal from '../components/AddRecordModal';
@@ -42,6 +42,8 @@ export default function CaptureDebug() {
   const [rows, setRows] = useState<Row[]>([]);
   const [log, setLog] = useState<CaptureLogEntry[]>([]);
   const [listener, setListener] = useState<{ enabled: boolean; connected: boolean } | null>(null);
+  const [accessEnabled, setAccessEnabled] = useState<boolean | null>(null);
+  const [screens, setScreens] = useState<AccessScreen[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [manual, setManual] = useState<Row | null>(null);
@@ -76,6 +78,8 @@ export default function CaptureDebug() {
         .sort((a, b) => b.capture.when - a.capture.when);
       setRows(list);
       setLog(await loadCaptureLog());
+      setAccessEnabled((await AutoCapture.checkAccessibility().catch(() => null))?.enabled ?? null);
+      setScreens((await AutoCapture.pullScreens().catch(() => ({ screens: [] }))).screens || []);
     } catch (e) {
       setError(`读取失败：${(e as { message?: string })?.message || String(e)}`);
     }
@@ -185,6 +189,37 @@ export default function CaptureDebug() {
               </div>
               <div className="cd-log-text">{e.text || e.title || '（无文本）'}</div>
               <div className="cd-log-reason">{e.reason}</div>
+            </div>
+          ))}
+        </>
+      )}
+
+      <div className="cd-section-title">无障碍读取（实验）</div>
+      <div className={`cd-status ${accessEnabled ? 'on' : ''}`}>
+        {accessEnabled === null
+          ? '无障碍状态：读取中…'
+          : accessEnabled
+            ? '无障碍已开启：打开微信/支付宝的账单、支付结果或「微信支付」聊天页时会记录页面文字'
+            : '无障碍未开启：到「权限设置」打开「PigBaby 账单读取（实验）」'}
+      </div>
+      {screens.length > 0 && (
+        <>
+          <button
+            className="cd-refresh"
+            onClick={async () => {
+              await AutoCapture.clearScreens({ ids: screens.map((s) => s.id) });
+              setScreens([]);
+            }}
+          >
+            清空抓屏记录（{screens.length} 条）
+          </button>
+          {screens.map((s) => (
+            <div key={s.id} className="cd-card">
+              <div className="cd-card-head">
+                <span className="cd-app">{s.app}</span>
+                <span className="cd-time">{formatTime(s.when)}</span>
+              </div>
+              <pre className="cd-screen-text">{s.text}</pre>
             </div>
           ))}
         </>

@@ -21,6 +21,7 @@ export default function ProfilePermissions() {
 
   const [notifAccess, setNotifAccess] = useState<boolean | null>(null);
   const [notifConnected, setNotifConnected] = useState(false);
+  const [accessEnabled, setAccessEnabled] = useState<boolean | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
 
@@ -32,6 +33,12 @@ export default function ProfilePermissions() {
       setNotifConnected(r.connected);
     } catch {
       setNotifAccess(false);
+    }
+    try {
+      const a = await AutoCapture.checkAccessibility();
+      setAccessEnabled(a.enabled);
+    } catch {
+      setAccessEnabled(false);
     }
   };
 
@@ -47,6 +54,14 @@ export default function ProfilePermissions() {
   const openNotifSettings = async () => {
     try {
       await AutoCapture.openSettings();
+    } catch {
+      // 用户在系统设置里取消
+    }
+  };
+
+  const openAccessibilitySettings = async () => {
+    try {
+      await AutoCapture.openAccessibilitySettings();
     } catch {
       // 用户在系统设置里取消
     }
@@ -184,6 +199,19 @@ export default function ProfilePermissions() {
           {calSync === 'denied' && (
             <div className="pf-desc">未授权读取日历，当前显示内置节假日表；点上方按钮重新授权。</div>
           )}
+        </div>
+        <div className="profile-card">
+          <FeatureRow
+            title="🧾 无障碍读取账单（实验）"
+            desc="开启后，你在微信/支付宝打开账单、支付结果或「微信支付」聊天页面时，App 会读取该页面文字，用来补记系统通知抓不到的收支（只处理这两个应用，其余应用完全不读取；文字只保存在本机，可在「最近捕获」页查看与清空）。"
+          >
+            <span className={`pf-status ${accessEnabled ? 'on' : ''}`}>
+              {isNativeCapture ? (accessEnabled ? '已开启' : '未开启') : '仅安卓端'}
+            </span>
+            <button className="pf-toggle" onClick={openAccessibilitySettings} disabled={!isNativeCapture}>
+              去开启
+            </button>
+          </FeatureRow>
         </div>
       </div>
     </div>
