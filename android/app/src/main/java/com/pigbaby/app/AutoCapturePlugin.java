@@ -1,11 +1,13 @@
 package com.pigbaby.app;
 
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.provider.Settings;
+import android.service.notification.NotificationListenerService;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -130,6 +132,25 @@ public class AutoCapturePlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("enabled", isListenerEnabled());
         ret.put("connected", PigNotificationListener.isConnected());
+        call.resolve(ret);
+    }
+
+    /** 已授权但未连接（服务被系统清理）时，请求系统重新绑定监听服务 */
+    @PluginMethod
+    public void reconnect(PluginCall call) {
+        JSObject ret = new JSObject();
+        if (!isListenerEnabled()) {
+            ret.put("requested", false);
+            call.resolve(ret);
+            return;
+        }
+        try {
+            NotificationListenerService.requestRebind(
+                    new ComponentName(getContext(), PigNotificationListener.class));
+            ret.put("requested", true);
+        } catch (Exception e) {
+            ret.put("requested", false);
+        }
         call.resolve(ret);
     }
 

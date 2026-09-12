@@ -1757,6 +1757,13 @@
   color: #FF6B6B;
 }
 
+/* 未完成（派生）：任务列表里当天没完成就显示浅色 ✗，区别于主动放弃的实心红 */
+.checkin-dot.missed {
+  background: var(--bg);
+  border-color: rgba(255, 107, 107, 0.28);
+  color: rgba(255, 107, 107, 0.45);
+}
+
 .checkin-dot.future {
   pointer-events: none;
 }
@@ -1814,6 +1821,19 @@
   font-size: 8px;
   font-weight: 700;
   color: #FF6B6B;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* 未完成（派生）：浅色 ✗，与主动放弃区分 */
+.checkin-month-dot.missed::after {
+  content: '✗';
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(255, 107, 107, 0.45);
   line-height: 1;
   pointer-events: none;
 }

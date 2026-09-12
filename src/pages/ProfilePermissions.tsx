@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { AutoCapture, syncCaptures, isNativeCapture } from '../autoCapture';
+import { AutoCapture, syncCaptures, reconnectCapture, isNativeCapture } from '../autoCapture';
 import FeatureRow, { ToggleButton } from '../components/FeatureRow';
 import {
   sysCalendarAvailable,
@@ -24,6 +24,8 @@ export default function ProfilePermissions() {
   const [accessEnabled, setAccessEnabled] = useState<boolean | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const [reconnectMsg, setReconnectMsg] = useState('');
 
   const checkNotifAccess = async () => {
     if (!isNativeCapture) { setNotifAccess(null); return; }
@@ -65,6 +67,24 @@ export default function ProfilePermissions() {
     } catch {
       // 用户在系统设置里取消
     }
+  };
+
+  const handleReconnect = async () => {
+    setConnecting(true);
+    setReconnectMsg('');
+    try {
+      const r = await reconnectCapture();
+      setNotifAccess(r.enabled);
+      setNotifConnected(r.connected);
+      setReconnectMsg(
+        r.connected
+          ? '✅ 已重新连接'
+          : '仍未连接：可以试试关闭再重新开启通知使用权，或重启手机'
+      );
+    } catch {
+      setReconnectMsg('连接失败：可以试试关闭再重新开启通知使用权');
+    }
+    setConnecting(false);
   };
 
   const runSync = async () => {
@@ -172,6 +192,11 @@ export default function ProfilePermissions() {
                   : '未授权'
                 : '仅安卓端'}
             </span>
+            {isNativeCapture && notifAccess && !notifConnected && (
+              <button className="pf-toggle" onClick={handleReconnect} disabled={connecting}>
+                {connecting ? '连接中…' : '连接监听'}
+              </button>
+            )}
             <button
               className="pf-toggle"
               onClick={notifAccess ? runSync : openNotifSettings}
@@ -181,6 +206,7 @@ export default function ProfilePermissions() {
             </button>
           </FeatureRow>
           {syncStatus && <div className="pf-desc">{syncStatus}</div>}
+          {reconnectMsg && <div className="pf-desc">{reconnectMsg}</div>}
         </div>
         <div className="profile-card">
           <FeatureRow title="🔔 通知权限（任务提醒）">

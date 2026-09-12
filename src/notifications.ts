@@ -24,11 +24,17 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 // silent channel; only the id is referenced from JS.
 const REMINDER_CHANNEL_ID = 'pigbaby_reminders';
 
-function parseReminder(reminder: string | null | undefined): Date | null {
-  if (!reminder) return null;
-  const at = new Date(reminder);
-  if (isNaN(at.getTime())) return null;
-  return at;
+// 提醒日期跟随任务日期：只取 reminder 里的 HH:mm，与 task.date 组合成触发时间
+export function reminderTimeOf(reminder: string | null | undefined): string | null {
+  const m = /T(\d{2}:\d{2})/.exec(reminder ?? '');
+  return m ? m[1] : null;
+}
+
+export function reminderAtOf(task: Pick<Task, 'date' | 'reminder'>): Date | null {
+  const t = reminderTimeOf(task.reminder);
+  if (!t) return null;
+  const at = new Date(`${task.date}T${t}`);
+  return isNaN(at.getTime()) ? null : at;
 }
 
 export type ReminderScheduleResult =
@@ -41,8 +47,8 @@ export type ReminderScheduleResult =
 // On Android 12+ schedule() itself opens the "Alarms & reminders" screen when
 // the exact-alarm permission is missing; if the user declines, the plugin falls
 // back to an inexact alarm and resolves with a `warning`.
-export async function scheduleTaskReminder(task: Pick<Task, 'id' | 'content' | 'reminder'>): Promise<ReminderScheduleResult> {
-  const at = parseReminder(task.reminder);
+export async function scheduleTaskReminder(task: Pick<Task, 'id' | 'content' | 'reminder' | 'date'>): Promise<ReminderScheduleResult> {
+  const at = reminderAtOf(task);
   if (!at || at.getTime() <= Date.now()) return { status: 'scheduled' };
   try {
     const notifId = notifIdForTask(task.id);
@@ -95,7 +101,7 @@ export async function resyncReminders(tasks: Task[]): Promise<{ failed: number }
   const now = Date.now();
   for (const t of tasks) {
     if (t.completed) continue;
-    const at = parseReminder(t.reminder);
+    const at = reminderAtOf(t);
     if (!at || at.getTime() <= now) continue;
     const r = await scheduleTaskReminder(t);
     if (r.status === 'failed' || r.status === 'permission-needed') {

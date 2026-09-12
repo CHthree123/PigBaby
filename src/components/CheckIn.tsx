@@ -9,6 +9,11 @@ function todayStr(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function dateStrOfMs(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function mondayOfWeek(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();
@@ -95,6 +100,19 @@ export default function CheckIn() {
 
   const getRecord = (goalId: string, date: string): CheckInRecord | undefined =>
     data.records.find((r) => r.goalId === goalId && r.date === date);
+
+  // 目标开始日：优先 createdAt，老数据回退用 id（毫秒时间戳）
+  const goalStart = useMemo(() => {
+    if (!activeGoal) return null;
+    if (activeGoal.createdAt) return activeGoal.createdAt;
+    const ms = parseInt(activeGoal.id, 10);
+    return !isNaN(ms) && ms >= 1e12 ? dateStrOfMs(ms) : null;
+  }, [activeGoal]);
+
+  // 未完成的天（创建日起、今天及以前、无记录）显示浅色 ✗，与任务列表状态同步
+  const isMissed = (dateStr: string): boolean =>
+    !!activeGoal && !!goalStart && dateStr <= today && dateStr >= goalStart
+    && !getRecord(activeGoal.id, dateStr);
 
   const handleToggleDay = async (goalId: string, date: string) => {
     if (date > today) return;
@@ -398,15 +416,16 @@ export default function CheckIn() {
                   const rec = getRecord(activeGoal.id, dateStr);
                   const isToday = dateStr === today;
                   const isFuture = dateStr > today;
+                  const missed = isMissed(dateStr);
                   return (
                     <div key={dateStr} className="checkin-day-col">
                       <div className="checkin-day-label">{WEEKDAYS[idx]}</div>
                       <button
-                        className={`checkin-dot ${rec?.status === 'success' ? 'success' : ''} ${rec?.status === 'fail' ? 'fail' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}`}
+                        className={`checkin-dot ${rec?.status === 'success' ? 'success' : ''} ${rec?.status === 'fail' ? 'fail' : ''} ${missed ? 'missed' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}`}
                         onClick={() => handleToggleDay(activeGoal.id, dateStr)}
                         disabled={isFuture}
                       >
-                        {rec?.status === 'success' ? '✓' : rec?.status === 'fail' ? '✗' : ''}
+                        {rec?.status === 'success' ? '✓' : rec?.status === 'fail' ? '✗' : missed ? '✗' : ''}
                       </button>
                       <div className="checkin-day-num">{dateStr.slice(8)}</div>
                       <div className="checkin-day-holiday">{sysHolidays.get(dateStr)?.emoji ?? ''}</div>
@@ -443,10 +462,11 @@ export default function CheckIn() {
                   const isToday = dateStr === today;
                   const isFuture = dateStr > today;
                   const isOther = month !== 'current';
+                  const missed = !isOther && isMissed(dateStr);
                   return (
                     <button
                       key={dateStr}
-                      className={`checkin-month-dot ${rec?.status === 'success' ? 'success' : ''} ${rec?.status === 'fail' ? 'fail' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''} ${isOther ? 'other' : ''}`}
+                      className={`checkin-month-dot ${rec?.status === 'success' ? 'success' : ''} ${rec?.status === 'fail' ? 'fail' : ''} ${missed ? 'missed' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''} ${isOther ? 'other' : ''}`}
                       onClick={() => handleToggleDay(activeGoal.id, dateStr)}
                       disabled={isFuture || isOther}
                     >

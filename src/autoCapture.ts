@@ -51,6 +51,7 @@ export interface AccessScreen {
 interface AutoCapturePlugin {
   checkEnabled(): Promise<{ enabled: boolean }>;
   status(): Promise<{ enabled: boolean; connected: boolean }>;
+  reconnect(): Promise<{ requested: boolean }>;
   openSettings(): Promise<void>;
   scanActive(): Promise<{ added: number }>;
   pullCaptured(): Promise<{ captures: RawCapture[] }>;
@@ -67,6 +68,13 @@ interface AutoCapturePlugin {
 
 export const AutoCapture = registerPlugin<AutoCapturePlugin>('AutoCapture');
 export const isNativeCapture = Capacitor.isNativePlatform();
+
+// 已授权但未连接时手动触发系统重新绑定，稍候返回最新状态
+export async function reconnectCapture(): Promise<{ enabled: boolean; connected: boolean }> {
+  const r = await AutoCapture.reconnect().catch(() => ({ requested: false }));
+  if (r.requested) await new Promise((res) => setTimeout(res, 1500));
+  return AutoCapture.status();
+}
 
 export interface ParseResult {
   ok: boolean;

@@ -7,6 +7,7 @@ import {
   classifyCapture,
   extractTokens,
   syncCaptures,
+  reconnectCapture,
   isNativeCapture,
   type RawCapture,
   type ParseResult,
@@ -186,6 +187,17 @@ export default function CaptureDebug() {
               ? '监听状态：已授权 · 监听中'
               : '监听状态：已授权 · 未连接（服务被系统清理，打开本页或稍候会自动重连）'}
       </div>
+
+      {listener?.enabled && !listener.connected && (
+        <button
+          className="cd-refresh"
+          onClick={async () => {
+            setListener(await reconnectCapture());
+          }}
+        >
+          🔄 重连监听服务
+        </button>
+      )}
 
       <button className="cd-refresh" onClick={load} disabled={loading}>
         {loading ? '读取中…' : '刷新（并扫描通知栏）'}

@@ -10,8 +10,11 @@ import {
   addIgnoredNote,
   type TagDef,
 } from '../storage';
-import { MemoryEngine } from '../tagMemory';
+import { MemoryEngine, canAutoFillNote, type AmountSuggestion } from '../tagMemory';
 import './AddRecordModal.css';
+
+// 自动填入备注所需的最低推荐分（防止弱匹配乱填）
+const AUTO_FILL_MIN_SCORE = 3;
 
 interface Props {
   type: 'income' | 'expense';
@@ -41,6 +44,9 @@ export default function AddRecordModal({ type, editRecord, draft, prefill, onSav
   const [allRecords, setAllRecords] = useState<Transaction[]>([]);
   const [smartRec, setSmartRec] = useState(true);
   const [ignored, setIgnored] = useState<Record<string, string[]>>({});
+  const [amountSuggestions, setAmountSuggestions] = useState<AmountSuggestion[]>([]);
+  const lastAutoNote = useRef<string | null>(null);
+  const noteRef = useRef(note);
   const openTime = useRef(Date.now());
 
   const handleOverlayClick = () => {
@@ -69,6 +75,33 @@ export default function AddRecordModal({ type, editRecord, draft, prefill, onSav
 
   const engine = useMemo(() => new MemoryEngine(allRecords), [allRecords]);
 
+  useEffect(() => {
+    noteRef.current = note;
+  }, [note]);
+
+  // 输入金额后：按历史「时间 + 金额 + 标签词条」自动生成备注（草稿同样生效；
+  // 编辑已保存的记录不改写）。依赖不含 note，避免自动填入反向触发循环。
+  useEffect(() => {
+    const amt = parseFloat(amount);
+    if (!smartRec || isNaN(amt) || amt <= 0) {
+      setAmountSuggestions([]);
+      return;
+    }
+    if (isEdit && !draft) return;
+    const timer = setTimeout(() => {
+      const sugg = engine.suggestForAmount(type, amt, undefined, 4, ignored);
+      setAmountSuggestions(sugg);
+      const top = sugg[0];
+      if (!top || top.score < AUTO_FILL_MIN_SCORE) return;
+      if (!canAutoFillNote(noteRef.current, lastAutoNote.current)) return;
+      setNote(top.note);
+      lastAutoNote.current = top.note;
+      setTag((prev) => (prev === '其他' || !prev ? top.tag || prev : prev));
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amount, smartRec, engine, ignored, type]);
+
   // Notes remembered under the currently selected tag (from history, time-of-day first)
   const rememberedNotes = useMemo(() => {
     if (!smartRec || !tag) return [];
@@ -89,6 +122,7 @@ export default function AddRecordModal({ type, editRecord, draft, prefill, onSav
       setNote(editRecord.note);
       setDate(editRecord.date);
       setTag(editRecord.tag || '其他');
+      lastAutoNote.current = null;
     }
   }, [editRecord]);
 
@@ -184,6 +218,24 @@ export default function AddRecordModal({ type, editRecord, draft, prefill, onSav
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
+          {amountSuggestions.length > 0 && (
+            <div className="arm-tag-suggest" style={{ marginTop: 6 }}>
+              <span className="arm-tag-suggest-label">✨ 按金额时间推荐</span>
+              {amountSuggestions.map((s) => (
+                <button
+                  key={`${s.note}|${s.tag}`}
+                  className="arm-tag-suggest-chip"
+                  onClick={() => {
+                    setNote(s.note);
+                    lastAutoNote.current = s.note;
+                    if (s.tag) setTag(s.tag);
+                  }}
+                >
+                  {s.note} · {s.tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="arm-field">

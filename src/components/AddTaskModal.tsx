@@ -9,10 +9,22 @@ interface Props {
   onClose: () => void;
 }
 
+// 提醒只存 HH:mm（日期永远跟随任务日期），兼容旧的完整 datetime 字符串
+function timeOfReminder(reminder: string | null | undefined): string {
+  const m = /T(\d{2}:\d{2})/.exec(reminder ?? '');
+  return m ? m[1] : '';
+}
+
+function nowLocalStr(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, onClose }: Props) {
   const [content, setContent] = useState(editTask?.content ?? '');
   const [date, setDate] = useState(editTask?.date ?? defaultDate);
-  const [reminder, setReminder] = useState(editTask?.reminder ?? '');
+  const [reminder, setReminder] = useState(timeOfReminder(editTask?.reminder));
   const openTime = useRef(Date.now());
   const isEdit = !!editTask;
 
@@ -20,7 +32,7 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
     if (editTask) {
       setContent(editTask.content);
       setDate(editTask.date);
-      setReminder(editTask.reminder ?? '');
+      setReminder(timeOfReminder(editTask.reminder));
     }
   }, [editTask]);
 
@@ -36,7 +48,7 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
       id: editTask?.id ?? Date.now().toString(),
       content: content.trim(),
       date,
-      reminder: reminder || null,
+      reminder: reminder ? `${date}T${reminder}` : null,
       completed: editTask?.completed ?? false,
       completedAt: editTask?.completedAt ?? null,
       createdAt: editTask?.createdAt ?? new Date().toISOString(),
@@ -74,13 +86,19 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
         </div>
 
         <div className="arm-field">
-          <label className="arm-label">⏰ 提醒时间（可选，准点通知）</label>
+          <label className="arm-label">⏰ 提醒时间（可选，任务日期当天）</label>
           <input
             className="arm-input"
-            type="datetime-local"
+            type="time"
+            step={60}
             value={reminder}
-            onChange={(e) => setReminder(e.target.value)}
+            onChange={(e) => setReminder(e.target.value.slice(0, 5))}
           />
+          {reminder && `${date}T${reminder}` <= nowLocalStr() && (
+            <div className="arm-label" style={{ color: '#E8930C', marginTop: 6 }}>
+              该时间已过去，不会收到提醒
+            </div>
+          )}
         </div>
 
         {isEdit && onDelete && (
