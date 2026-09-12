@@ -151,36 +151,36 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
     <div className="profile-page">
       <div className="profile-header">
         <button className="profile-back" onClick={() => navigate('/profile')}>‹ 返回</button>
-        <h3>🙋 个人中心</h3>
+        <h3>个人中心</h3>
         <span className="profile-header-spacer" />
       </div>
 
       <div className="profile-section">
-        <div className="profile-section-title">🎨 外观</div>
+        <div className="profile-section-title">外观</div>
         <div className="profile-card">
           <FeatureRow
-            title="🎨 界面主题"
+            title="界面主题"
             desc="粉嫩为主题色浅粉；酷黑为深色主题，状态栏与页面颜色同步切换。"
           >
             <div className="profile-theme-options">
               <button
                 className={`profile-theme-opt ${theme === 'light' ? 'active' : ''}`}
                 onClick={() => switchTheme('light')}
-              >🌸 粉嫩</button>
+              >粉嫩</button>
               <button
                 className={`profile-theme-opt dark ${theme === 'dark' ? 'active' : ''}`}
                 onClick={() => switchTheme('dark')}
-              >🖤 酷黑</button>
+              >酷黑</button>
             </div>
           </FeatureRow>
         </div>
       </div>
 
       <div className="profile-section">
-        <div className="profile-section-title">🧩 功能与偏好</div>
+        <div className="profile-section-title">功能与偏好</div>
         <div className="profile-card">
           <FeatureRow
-            title="📦 功能模块"
+            title="功能模块"
             desc="关闭的模块会从底部导航隐藏（日历与个人始终保留）。"
           >
             <div className="profile-theme-options">
@@ -191,7 +191,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           </FeatureRow>
           <div className="profile-divider" />
           <FeatureRow
-            title="🐷 小猪按钮动作"
+            title="小猪按钮动作"
             desc="点击底部中间的粉色小猪时触发的动作；对应模块关闭时自动使用另一个动作。"
           >
             <div className="profile-theme-options">
@@ -209,7 +209,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           </FeatureRow>
           <div className="profile-divider" />
           <FeatureRow
-            title="💼 记账模式"
+            title="记账模式"
             desc="预算制：主页显示「本月剩余 = 月预算 + 收入 − 支出」。余额制：录入当前余额后，主页显示「余额」与「本月支出」，月预算变为进度条。"
           >
             <div className="profile-theme-options">
@@ -229,7 +229,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
             <>
               <div className="profile-divider" />
               <FeatureRow
-                title={`💰 当前余额 ${balanceAmount !== null ? `¥${balanceAmount}` : '未设置'}`}
+                title={`当前余额 ${balanceAmount !== null ? `¥${balanceAmount}` : '未设置'}`}
                 desc="修改余额后，会以今天的日期重新起算（此前的记录不再计入余额）。"
               >
                 <button className="pf-toggle" onClick={openBalanceModal}>修改</button>
@@ -238,25 +238,25 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           )}
           <div className="profile-divider" />
           <FeatureRow
-            title="💡 智能推荐（记账记忆）"
+            title="智能推荐（记账记忆）"
             desc="开启后记账时会根据历史记录推荐标签和常用备注（全部在本机统计）。"
           >
             <ToggleButton on={smartRec} onToggle={() => toggleSmartRec(!smartRec)} />
           </FeatureRow>
           <div className="profile-divider" />
           <button className="profile-link-row" onClick={() => navigate('/profile/tags')}>
-            <span>🏷️ 标签管理</span>
+            <span>标签管理</span>
             <span className="profile-link-arrow">›</span>
           </button>
-          <div className="profile-placeholder-item">☁️ 数据同步与备份<span className="soon">敬请期待</span></div>
+          <div className="profile-placeholder-item">数据同步与备份<span className="soon">敬请期待</span></div>
         </div>
       </div>
 
       <div className="profile-section">
-        <div className="profile-section-title">🤖 自动记账</div>
+        <div className="profile-section-title">自动记账</div>
         <div className="profile-card">
           <FeatureRow
-            title="🔔 通知监听自动记账"
+            title="通知监听自动记账"
             desc="开启后，微信/支付宝/抖音/淘宝/京东/拼多多/美团/云闪付的付款收款通知会生成记账草稿；转账类消息不自动记账，需手动补记（需先在「权限设置」里授予通知使用权）。"
           >
             <ToggleButton
@@ -267,7 +267,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           </FeatureRow>
           <div className="profile-divider" />
           <FeatureRow
-            title="⚡ 跳过确认直接入账"
+            title="跳过确认直接入账"
             desc="关闭（默认）时每笔捕获都会先进入记账页的「待确认」，逐笔确认后才入账。"
           >
             <ToggleButton
@@ -278,7 +278,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           </FeatureRow>
           <div className="profile-divider" />
           <FeatureRow
-            title="🧠 AI 增强打标"
+            title="AI 增强打标"
             desc="预留：接入 AI 后用于识别商户并推荐标签（账目摘要会上传云端）。当前为本地规则 + 记账记忆打标。"
           >
             <ToggleButton
@@ -289,7 +289,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           </FeatureRow>
           <div className="profile-divider" />
           <button className="profile-link-row" onClick={() => navigate('/profile/captures')}>
-            <span>🔍 最近捕获（校准 · 教学 · 历史）</span>
+            <span>最近捕获（校准 · 教学 · 历史）</span>
             <span className="profile-link-arrow">›</span>
           </button>
         </div>
@@ -300,7 +300,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
         <div className="ac-modal-overlay" onClick={() => setShowBalanceModal(false)}>
           <div className="ac-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-handle" />
-            <h3>💰 设置当前余额</h3>
+            <h3>设置当前余额</h3>
             <div className="ac-settings-body">
               <label className="ac-settings-label">填写你现在的余额（之后记账在此基础上增减）</label>
               <div className="ac-settings-input-wrap">

@@ -200,7 +200,7 @@ export default function CaptureDebug() {
     <div className="cd-page">
       <div className="profile-header">
         <button className="profile-back" onClick={() => navigate('/profile/center')}>‹ 返回</button>
-        <h3>🔍 最近捕获</h3>
+        <h3>最近捕获</h3>
         <span className="profile-header-spacer" />
       </div>
 
@@ -242,7 +242,7 @@ export default function CaptureDebug() {
               setReconnecting(false);
             }}
           >
-            {reconnecting ? '连接中…（最多等约 6 秒）' : '🔄 重连监听服务'}
+            {reconnecting ? '连接中…（最多等约 6 秒）' : '重连监听服务'}
           </button>
           <button
             className="cd-mini"

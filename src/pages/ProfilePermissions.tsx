@@ -78,7 +78,7 @@ export default function ProfilePermissions() {
       setNotifConnected(r.connected);
       setReconnectMsg(
         r.connected
-          ? '✅ 已重新连接'
+          ? '已重新连接'
           : '仍未连接：可点「系统设置」把通知使用权关闭再重新打开，或重启手机'
       );
     } catch {
@@ -174,15 +174,15 @@ export default function ProfilePermissions() {
     <div className="profile-page">
       <div className="profile-header">
         <button className="profile-back" onClick={() => navigate('/profile')}>‹ 返回</button>
-        <h3>🔐 权限设置</h3>
+        <h3>权限设置</h3>
         <span className="profile-header-spacer" />
       </div>
 
       <div className="profile-section">
-        <div className="profile-section-title">🔐 系统授权</div>
+        <div className="profile-section-title">系统授权</div>
         <div className="profile-card">
           <FeatureRow
-            title="🔔 自动记账（通知监听）"
+            title="自动记账（通知监听）"
             desc={'授权「通知使用权」后，付款/收款时按微信、支付宝、抖音、淘宝、京东、拼多多、美团、云闪付的通知自动生成待确认草稿（只读取这 8 个应用的通知，其他应用不读取、不保存）。转账类消息不自动记账，会在「最近捕获」里提示手动补记；广告/物流类消息自动过滤。需在个人中心打开总开关后生效。小米/红米等国产系统建议把 PigBaby 的省电策略设为「无限制」并锁定后台，避免监听服务被系统清理导致漏抓。'}
           >
             <span className={`pf-status ${notifAccess && notifConnected ? 'on' : ''}`}>
@@ -214,18 +214,18 @@ export default function ProfilePermissions() {
           {reconnectMsg && <div className="pf-desc">{reconnectMsg}</div>}
         </div>
         <div className="profile-card">
-          <FeatureRow title="🔔 通知权限（任务提醒）">
+          <FeatureRow title="通知权限（任务提醒）">
             <span className={`pf-status ${notifStatus === '已开启' ? 'on' : ''}`}>{notifStatus}</span>
             <button className="pf-toggle" onClick={requestNotif}>申请</button>
           </FeatureRow>
           <div className="profile-divider" />
-          <FeatureRow title="⏰ 精确闹钟（熄屏准点提醒）">
+          <FeatureRow title="精确闹钟（熄屏准点提醒）">
             <span className={`pf-status ${alarmStatus === '已开启' ? 'on' : ''}`}>{alarmStatus}</span>
             <button className="pf-toggle" onClick={openAlarmSettings}>去开启</button>
           </FeatureRow>
           <div className="profile-divider" />
           <FeatureRow
-            title="📅 节假日同步手机日历"
+            title="节假日同步手机日历"
             desc="开启后，打卡与日历页的节假日以手机系统日历实时为准（需授权读取日历；手机需已订阅「节假日」日历）。未授权或手机没有订阅时，自动显示内置节假日表。"
           >
             <ToggleButton
@@ -240,7 +240,7 @@ export default function ProfilePermissions() {
         </div>
         <div className="profile-card">
           <FeatureRow
-            title="🧾 无障碍读取账单（实验）"
+            title="无障碍读取账单（实验）"
             desc="开启后，你在微信/支付宝打开账单、支付结果或「微信支付」聊天页面时，App 会读取该页面文字，用来补记系统通知抓不到的收支（只处理这两个应用，其余应用完全不读取；文字只保存在本机，可在「最近捕获」页查看与清空）。"
           >
             <span className={`pf-status ${accessEnabled ? 'on' : ''}`}>

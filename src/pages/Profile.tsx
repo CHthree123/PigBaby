@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
-const APP_VERSION = '1.10.3';
+const APP_VERSION = '1.10.4';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ export default function Profile() {
     <div className="profile-page">
       <div className="profile-header">
         <button className="profile-back" onClick={() => navigate(-1)}>‹ 返回</button>
-        <h3>👤 个人</h3>
+        <h3>个人</h3>
         <span className="profile-header-spacer" />
       </div>
 
@@ -25,7 +25,6 @@ export default function Profile() {
 
       <div className="profile-section">
         <button className="profile-entry-card" onClick={() => navigate('/profile/permissions')}>
-          <span className="profile-entry-icon">🔐</span>
           <span className="profile-entry-body">
             <span className="profile-entry-title">权限设置</span>
             <span className="profile-entry-sub">通知 · 精确闹钟 · 自动记账 · 日历同步</span>
@@ -34,7 +33,6 @@ export default function Profile() {
         </button>
 
         <button className="profile-entry-card" onClick={() => navigate('/profile/center')}>
-          <span className="profile-entry-icon">🙋</span>
           <span className="profile-entry-body">
             <span className="profile-entry-title">个人中心</span>
             <span className="profile-entry-sub">主题 · 功能模块 · 记账偏好</span>
@@ -43,7 +41,7 @@ export default function Profile() {
         </button>
       </div>
 
-      <div className="profile-version">📱 版本 {APP_VERSION}</div>
+      <div className="profile-version">版本 {APP_VERSION}</div>
     </div>
   );
 }

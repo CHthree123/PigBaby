@@ -107,7 +107,7 @@ export default function TagManager() {
     <div className="tm-page">
       <div className="profile-header">
         <button className="profile-back" onClick={() => navigate('/profile/center')}>‹ 返回</button>
-        <h3>🏷️ 标签管理</h3>
+        <h3>标签管理</h3>
         <span className="profile-header-spacer" />
       </div>
 

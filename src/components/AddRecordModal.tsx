@@ -220,7 +220,7 @@ export default function AddRecordModal({ type, editRecord, draft, prefill, onSav
           />
           {amountSuggestions.length > 0 && (
             <div className="arm-tag-suggest" style={{ marginTop: 6 }}>
-              <span className="arm-tag-suggest-label">✨ 按金额时间推荐</span>
+              <span className="arm-tag-suggest-label">按金额时间推荐</span>
               {amountSuggestions.map((s) => (
                 <button
                   key={`${s.note}|${s.tag}`}
