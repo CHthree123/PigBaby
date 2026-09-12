@@ -694,3 +694,39 @@ export async function loadDateNotes(): Promise<DateNotesData> {
 export async function saveDateNotes(data: DateNotesData): Promise<void> {
   await Preferences.set({ key: DATE_NOTES_KEY, value: JSON.stringify(data) });
 }
+
+// ========== 本机资料（昵称 / 头像） ==========
+
+const LOCAL_PROFILE_KEY = 'pigbaby_local_profile';
+
+export interface LocalProfile {
+  nickname: string;
+  /** 相册图片的 data URL，或一个 emoji 字符（预设图案） */
+  avatar: string;
+}
+
+export const DEFAULT_LOCAL_PROFILE: LocalProfile = { nickname: 'PigBaby 用户', avatar: '🐷' };
+
+export async function loadLocalProfile(): Promise<LocalProfile> {
+  const { value } = await Preferences.get({ key: LOCAL_PROFILE_KEY });
+  if (!value) return { ...DEFAULT_LOCAL_PROFILE };
+  try {
+    const parsed = JSON.parse(value) as Partial<LocalProfile>;
+    return {
+      nickname:
+        typeof parsed.nickname === 'string' && parsed.nickname.trim()
+          ? parsed.nickname
+          : DEFAULT_LOCAL_PROFILE.nickname,
+      avatar:
+        typeof parsed.avatar === 'string' && parsed.avatar
+          ? parsed.avatar
+          : DEFAULT_LOCAL_PROFILE.avatar,
+    };
+  } catch {
+    return { ...DEFAULT_LOCAL_PROFILE };
+  }
+}
+
+export async function saveLocalProfile(p: LocalProfile): Promise<void> {
+  await Preferences.set({ key: LOCAL_PROFILE_KEY, value: JSON.stringify(p) });
+}

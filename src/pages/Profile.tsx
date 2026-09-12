@@ -1,94 +1,115 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  isCloudConfigured,
-  loadCloudUser,
-  cachedCloudUser,
-  updateNickname,
-  signOutCloud,
-  errorText,
-  type CloudUser,
-} from '../cloudbase';
+  loadLocalProfile,
+  saveLocalProfile,
+  DEFAULT_LOCAL_PROFILE,
+  type LocalProfile,
+} from '../storage';
 import './Profile.css';
 
 const APP_VERSION = '1.11.0';
 
-const AVATAR_COLORS = ['#F9A8C0', '#F5C27D', '#9BD9A8', '#93C5FD', '#C4B5FD', '#7DD3D8', '#F6A5A5'];
+const AVATAR_PRESETS = ['🐷', '🐱', '🐶', '🐰', '🐻', '🐼', '🦊', '🐸', '🐥', '🦄', '🌸', '⭐'];
 
-function avatarColor(seed: string): string {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+const AVATAR_MAX_SIDE = 256;
+const AVATAR_QUALITY = 0.82;
+
+function isImageAvatar(avatar: string): boolean {
+  return avatar.startsWith('data:');
 }
 
-function avatarChar(nickname: string): string {
-  const chars = Array.from(nickname.trim());
-  return chars.length > 0 ? chars[0].toUpperCase() : 'P';
+/** 压缩为最长边 maxSide 的 JPEG data URL，控制本机存储体积（一张约 20~40KB） */
+function downscaleImage(file: File, maxSide: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('canvas unavailable'));
+        return;
+      }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('image load failed'));
+    };
+    img.src = url;
+  });
+}
+
+function AvatarBubble({ avatar, className = '' }: { avatar: string; className?: string }) {
+  if (isImageAvatar(avatar)) {
+    return (
+      <div className={`profile-avatar profile-avatar-img ${className}`.trim()}>
+        <img src={avatar} alt="" />
+      </div>
+    );
+  }
+  return <div className={`profile-avatar ${className}`.trim()}>{avatar}</div>;
 }
 
 export default function Profile() {
   const navigate = useNavigate();
-  const [cloudUser, setCloudUser] = useState<CloudUser | null>(() => cachedCloudUser());
-  const [authLoading, setAuthLoading] = useState(() => isCloudConfigured && !cachedCloudUser());
-  const [showAccount, setShowAccount] = useState(false);
+  const [profile, setProfile] = useState<LocalProfile>(DEFAULT_LOCAL_PROFILE);
+  const [showEdit, setShowEdit] = useState(false);
   const [nickInput, setNickInput] = useState('');
+  const [avatarDraft, setAvatarDraft] = useState('');
   const [busy, setBusy] = useState(false);
-  const [accountMsg, setAccountMsg] = useState('');
-  const [accountErr, setAccountErr] = useState('');
+  const [editErr, setEditErr] = useState('');
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (!isCloudConfigured) return;
-    loadCloudUser().then((u) => {
-      setCloudUser(u);
-      setAuthLoading(false);
-    });
+    loadLocalProfile().then(setProfile);
   }, []);
 
-  const openAccount = () => {
-    if (authLoading) return;
-    if (!cloudUser) {
-      navigate('/login');
-      return;
-    }
-    setNickInput(cloudUser.nickname);
-    setAccountMsg('');
-    setAccountErr('');
-    setShowAccount(true);
+  const openEdit = () => {
+    setNickInput(profile.nickname);
+    setAvatarDraft(profile.avatar);
+    setEditErr('');
+    setShowEdit(true);
   };
 
-  const saveNickname = async () => {
+  const pickAvatar = () => fileRef.current?.click();
+
+  const onFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setEditErr('');
+    try {
+      setAvatarDraft(await downscaleImage(file, AVATAR_MAX_SIDE, AVATAR_QUALITY));
+    } catch {
+      setEditErr('图片读取失败，换一张试试');
+    }
+  };
+
+  const saveProfile = async () => {
     const name = nickInput.trim();
     if (!name) {
-      setAccountErr('昵称不能为空');
-      return;
-    }
-    if (name === cloudUser?.nickname) {
-      setShowAccount(false);
+      setEditErr('昵称不能为空');
       return;
     }
     setBusy(true);
-    setAccountErr('');
-    setAccountMsg('');
+    const next: LocalProfile = { nickname: name, avatar: avatarDraft || DEFAULT_LOCAL_PROFILE.avatar };
     try {
-      await updateNickname(name);
-      setCloudUser((u) => (u ? { ...u, nickname: name } : u));
-      setAccountMsg('昵称已保存');
-    } catch (e) {
-      setAccountErr(errorText(e, '保存失败，请重试'));
-    }
-    setBusy(false);
-  };
-
-  const logout = async () => {
-    if (!window.confirm('退出登录后本机记账数据不受影响，再次登录即可回来。确定退出？')) return;
-    setBusy(true);
-    setAccountErr('');
-    try {
-      await signOutCloud();
-      setCloudUser(null);
-      setShowAccount(false);
-    } catch (e) {
-      setAccountErr(errorText(e, '退出失败，请重试'));
+      await saveLocalProfile(next);
+      setProfile(next);
+      setShowEdit(false);
+    } catch {
+      setEditErr('保存失败，请重试');
     }
     setBusy(false);
   };
@@ -101,30 +122,11 @@ export default function Profile() {
         <span className="profile-header-spacer" />
       </div>
 
-      <button className="profile-user-card" onClick={openAccount}>
-        {cloudUser ? (
-          <div
-            className="profile-avatar profile-avatar-mono"
-            style={{ background: avatarColor(cloudUser.uid || cloudUser.nickname) }}
-          >
-            {avatarChar(cloudUser.nickname)}
-          </div>
-        ) : (
-          <div className="profile-avatar">🐷</div>
-        )}
+      <button className="profile-user-card" onClick={openEdit}>
+        <AvatarBubble avatar={profile.avatar} />
         <div className="profile-user-info">
-          <div className="profile-user-name">
-            {cloudUser ? cloudUser.nickname : authLoading ? '加载中…' : '登录 / 注册'}
-          </div>
-          <div className="profile-user-sub">
-            {cloudUser
-              ? cloudUser.email
-              : authLoading
-                ? ''
-                : isCloudConfigured
-                  ? '邮箱验证码登录，昵称头像云端保存'
-                  : '云端未配置，登录暂不可用'}
-          </div>
+          <div className="profile-user-name">{profile.nickname}</div>
+          <div className="profile-user-sub">点击设置昵称和头像</div>
         </div>
         <span className="profile-entry-arrow">›</span>
       </button>
@@ -149,31 +151,61 @@ export default function Profile() {
 
       <div className="profile-version">版本 {APP_VERSION}</div>
 
-      {showAccount && cloudUser && (
-        <div className="ac-modal-overlay" onClick={() => !busy && setShowAccount(false)}>
+      {showEdit && (
+        <div className="ac-modal-overlay" onClick={() => !busy && setShowEdit(false)}>
           <div className="ac-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-handle" />
-            <h3>账号</h3>
+            <h3>编辑资料</h3>
             <div className="ac-settings-body">
-              <div className="account-email">{cloudUser.email}</div>
+              <div className="avatar-edit-row">
+                <AvatarBubble avatar={avatarDraft || DEFAULT_LOCAL_PROFILE.avatar} className="avatar-edit-preview" />
+                <div className="avatar-edit-actions">
+                  <button className="pf-toggle" disabled={busy} onClick={pickAvatar}>从相册选择</button>
+                  <button
+                    className="pf-toggle"
+                    disabled={busy}
+                    onClick={() => setAvatarDraft(DEFAULT_LOCAL_PROFILE.avatar)}
+                  >
+                    恢复默认
+                  </button>
+                </div>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={onFileChange}
+              />
+              <div className="avatar-preset-grid">
+                {AVATAR_PRESETS.map((a) => (
+                  <button
+                    key={a}
+                    className={`avatar-preset ${avatarDraft === a ? 'active' : ''}`}
+                    disabled={busy}
+                    onClick={() => setAvatarDraft(a)}
+                  >
+                    {a}
+                  </button>
+                ))}
+              </div>
               <label className="ac-settings-label">昵称</label>
               <input
-                className="account-input"
+                className="profile-text-input"
                 maxLength={16}
                 value={nickInput}
                 onChange={(e) => setNickInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !busy) saveNickname();
+                  if (e.key === 'Enter' && !busy) saveProfile();
                 }}
               />
-              {accountMsg && <div className="login-notice">{accountMsg}</div>}
-              {accountErr && <div className="login-error">{accountErr}</div>}
+              {editErr && <div className="profile-error-text">{editErr}</div>}
             </div>
             <div className="ac-modal-btns">
-              <button className="ac-modal-btn cancel account-logout" disabled={busy} onClick={logout}>
-                退出登录
+              <button className="ac-modal-btn cancel" disabled={busy} onClick={() => setShowEdit(false)}>
+                取消
               </button>
-              <button className="ac-modal-btn confirm" disabled={busy} onClick={saveNickname}>
+              <button className="ac-modal-btn confirm" disabled={busy} onClick={saveProfile}>
                 {busy ? '保存中…' : '保存'}
               </button>
             </div>
