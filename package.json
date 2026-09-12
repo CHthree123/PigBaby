@@ -1,7 +1,7 @@
 {
   "name": "pigbaby",
   "private": true,
-  "version": "1.10.4",
+  "version": "1.11.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -20,6 +20,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "^8.0.3",
     "@capgo/capacitor-calendar": "^8.0.8",
+    "@cloudbase/js-sdk": "^3.9.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.16.0"

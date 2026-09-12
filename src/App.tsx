@@ -6,6 +6,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import Accounting from './pages/Accounting';
 import Tasks from './pages/Tasks';
 import Profile from './pages/Profile';
+import Login from './pages/Login';
 import ProfilePermissions from './pages/ProfilePermissions';
 import ProfileCenter from './pages/ProfileCenter';
 import TagManager from './pages/TagManager';
@@ -114,6 +115,7 @@ function App() {
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/profile/permissions" element={<ProfilePermissions />} />
           <Route path="/profile/center" element={<ProfileCenter theme={theme} onThemeChange={setTheme} />} />
           <Route path="/profile/tags" element={<TagManager />} />
