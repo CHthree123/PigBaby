@@ -18,7 +18,14 @@ import './App.css';
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [theme, setTheme] = useState<ThemeName>('light');
+  // 启动瞬间先取 localStorage 镜像（与启动页同一来源），Preferences 读完后校正
+  const [theme, setTheme] = useState<ThemeName>(() => {
+    try {
+      return localStorage.getItem('pigbaby_theme') === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
   const [features, setFeatures] = useState<AppFeatures>({ accounting: true, tasks: true });
   const [pigAction, setPigAction] = useState<PigAction>('expense');
 
@@ -33,7 +40,15 @@ function App() {
   }, [location.pathname]);
 
   useEffect(() => {
-    document.body.classList.toggle('theme-dark', theme === 'dark');
+    const dark = theme === 'dark';
+    document.body.classList.toggle('theme-dark', dark);
+    // 给启动页留一份同步可见的镜像（index.html 在首帧就要决定皮肤）
+    document.documentElement.classList.toggle('splash-dark', dark);
+    try {
+      localStorage.setItem('pigbaby_theme', theme);
+    } catch {
+      /* 忽略 */
+    }
   }, [theme]);
 
   // Status bar follows the in-app theme so the top of the screen stays unified

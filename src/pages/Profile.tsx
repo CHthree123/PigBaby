@@ -8,7 +8,7 @@ import {
 } from '../storage';
 import './Profile.css';
 
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '2.0.0';
 
 const AVATAR_PRESETS = ['🐷', '🐱', '🐶', '🐰', '🐻', '🐼', '🦊', '🐸', '🐥', '🦄', '🌸', '⭐'];
 

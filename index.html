@@ -5,8 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>PigBaby</title>
     <link rel="icon" type="image/svg+xml" href="/pig.svg" />
+    <script>
+      // 主题镜像在 localStorage 里，启动页显示前就决定用哪套皮肤（避免暗色用户先看到粉色）
+      (function () {
+        try {
+          if (localStorage.getItem('pigbaby_theme') === 'dark') {
+            document.documentElement.classList.add('splash-dark');
+          }
+        } catch (e) {
+          /* 无痕/禁用存储时忽略 */
+        }
+      })();
+    </script>
     <style>
-      /* Splash Screen */
+      /* ===== 启动页（浅色：粉嫩小猪） ===== */
       #splash {
         position: fixed;
         inset: 0;
@@ -86,7 +98,6 @@
         100% { opacity: 1; }
       }
 
-      /* Dot loading after subtitle */
       .splash-dots {
         margin-top: 28px;
         display: flex;
@@ -115,17 +126,195 @@
         85% { transform: translateY(-4px) scale(1.02); }
         100% { opacity: 1; transform: translateY(0) scale(1); }
       }
+
+      /* ===== 酷黑启动页：雷电夜 ===== */
+
+      html.splash-dark {
+        background: #0B0B12;
+      }
+      html.splash-dark #splash {
+        background: radial-gradient(120% 90% at 50% 6%, #22223A 0%, #14141F 46%, #0B0B12 100%);
+        animation: darkBgShift 6s ease-in-out infinite;
+      }
+      @keyframes darkBgShift {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.14); }
+      }
+
+      /* 全屏闪光（与闪电同步） */
+      .splash-flash {
+        display: none;
+        position: absolute;
+        inset: 0;
+        background: #EAF6FF;
+        opacity: 0;
+        pointer-events: none;
+      }
+      html.splash-dark .splash-flash {
+        display: block;
+        animation: darkFlash 2.4s ease-out 0.35s infinite;
+      }
+      @keyframes darkFlash {
+        0%, 100% { opacity: 0; }
+        5% { opacity: 0.5; }
+        11% { opacity: 0; }
+        17% { opacity: 0.26; }
+        23% { opacity: 0; }
+      }
+
+      /* 眼罩坏笑小猪（SVG 手绘） */
+      .splash-dark-art {
+        display: none;
+        position: relative;
+        width: 220px;
+        height: 190px;
+      }
+      html.splash-dark .splash-dark-art { display: block; }
+      html.splash-dark .splash-pig,
+      html.splash-dark .splash-title-row,
+      html.splash-dark .splash-spark { display: none; }
+
+      .splash-pig-svg {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 152px;
+        height: auto;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+        filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 22px rgba(110, 231, 240, 0.28));
+      }
+      html.splash-dark .splash-pig-svg {
+        animation: darkPigIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 1.15s forwards;
+      }
+      @keyframes darkPigIn {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.55) rotate(-6deg); }
+        60% { opacity: 1; transform: translate(-50%, -50%) scale(1.06) rotate(2deg); }
+        100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+      }
+
+      /* 闪电 */
+      .splash-bolt {
+        position: absolute;
+        width: 42px;
+        height: 124px;
+        opacity: 0;
+        filter: drop-shadow(0 0 10px rgba(150, 220, 255, 0.9)) drop-shadow(0 0 26px rgba(110, 200, 255, 0.5));
+      }
+      .splash-bolt.left { left: -12px; top: -54px; }
+      .splash-bolt.right { right: -8px; top: -48px; width: 36px; height: 106px; }
+      html.splash-dark .splash-bolt {
+        animation: boltStrike 2.4s ease-out 0.35s infinite;
+      }
+      html.splash-dark .splash-bolt.right { animation-delay: 0.75s; }
+      @keyframes boltStrike {
+        0%, 100% { opacity: 0; transform: translateY(-14px) scale(0.72); }
+        6% { opacity: 1; transform: translateY(0) scale(1); }
+        14% { opacity: 0.75; }
+        26% { opacity: 0; transform: translateY(4px) scale(1.03); }
+      }
+
+      /* Z H K 霓虹字母 */
+      .splash-zhk {
+        display: none;
+        margin-top: 24px;
+        gap: 12px;
+        font-weight: 900;
+        font-style: italic;
+        letter-spacing: 2px;
+      }
+      html.splash-dark .splash-zhk { display: flex; }
+      .zhk-char {
+        font-size: 42px;
+        line-height: 1;
+        opacity: 0;
+      }
+      html.splash-dark .zhk-char {
+        animation: zhkPop 0.6s cubic-bezier(0.22, 1.4, 0.36, 1) forwards;
+      }
+      html.splash-dark .zhk-char:nth-child(1) { animation-delay: 0.6s; }
+      html.splash-dark .zhk-char:nth-child(2) { animation-delay: 0.76s; }
+      html.splash-dark .zhk-char:nth-child(3) { animation-delay: 0.92s; }
+      .zhk-char.z { color: #6EE7F0; text-shadow: 0 0 14px rgba(110, 231, 240, 0.85), 0 0 36px rgba(110, 231, 240, 0.45); }
+      .zhk-char.h { color: #FF9BB3; text-shadow: 0 0 14px rgba(255, 155, 179, 0.9), 0 0 36px rgba(255, 155, 179, 0.5); }
+      .zhk-char.k { color: #C4B5FD; text-shadow: 0 0 14px rgba(196, 181, 253, 0.85), 0 0 36px rgba(196, 181, 253, 0.45); }
+      @keyframes zhkPop {
+        0% { opacity: 0; transform: translateY(14px) scale(1.55); filter: blur(7px); }
+        60% { opacity: 1; transform: translateY(-3px) scale(0.98); filter: blur(0); }
+        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+      }
+
+      html.splash-dark .splash-subtitle {
+        color: rgba(255, 255, 255, 0.72);
+        animation-delay: 1.9s;
+      }
+      html.splash-dark .splash-dots { animation-delay: 2s; }
+      html.splash-dark .splash-dot { background: rgba(255, 255, 255, 0.45); }
     </style>
   </head>
   <body>
     <!-- Splash Screen -->
     <div id="splash">
+      <div class="splash-flash"></div>
+
       <div class="splash-pig-wrap">
         <span class="splash-pig">🐷</span>
         <span class="splash-spark" style="top:-8px;right:-24px;animation-delay:0.8s">✨</span>
         <span class="splash-spark" style="bottom:-4px;left:-20px;animation-delay:1.0s">💫</span>
         <span class="splash-spark" style="top:4px;left:-32px;animation-delay:1.15s">🌟</span>
+
+        <!-- 酷黑专属：眼罩坏笑小猪 + 闪电 -->
+        <div class="splash-dark-art">
+          <svg class="splash-bolt left" viewBox="0 0 40 110" aria-hidden="true">
+            <path d="M26 2 L4 60 L17 60 L10 108 L36 44 L22 44 Z" fill="#EAF6FF" stroke="#8FD8FF" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          <svg class="splash-bolt right" viewBox="0 0 40 110" aria-hidden="true">
+            <path d="M26 2 L4 60 L17 60 L10 108 L36 44 L22 44 Z" fill="#EAF6FF" stroke="#8FD8FF" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+          <svg class="splash-pig-svg" viewBox="0 0 200 180" aria-hidden="true">
+            <defs>
+              <linearGradient id="pigFace" x1="0" y1="0" x2="0.35" y2="1">
+                <stop offset="0" stop-color="#FFAFC5"/>
+                <stop offset="1" stop-color="#F27FA0"/>
+              </linearGradient>
+            </defs>
+
+            <!-- 耳朵 -->
+            <path d="M52 46 L34 16 Q31 10 38 12 L76 34 Z" fill="#F27FA0"/>
+            <path d="M148 46 L166 16 Q169 10 162 12 L124 34 Z" fill="#F27FA0"/>
+
+            <!-- 头 -->
+            <rect x="22" y="24" width="156" height="136" rx="54" fill="url(#pigFace)"/>
+
+            <!-- 眼罩带 -->
+            <path d="M20 68 L180 40" stroke="#171720" stroke-width="10" stroke-linecap="round"/>
+
+            <!-- 眼罩 -->
+            <circle cx="66" cy="82" r="27" fill="#12121A"/>
+            <circle cx="66" cy="82" r="27" fill="none" stroke="#2E2E3E" stroke-width="3"/>
+
+            <!-- 右眼（睁着的那只） -->
+            <circle cx="136" cy="82" r="18" fill="#FFFFFF"/>
+            <circle cx="139" cy="84" r="8.5" fill="#20202A"/>
+            <circle cx="142" cy="81" r="2.6" fill="#FFFFFF"/>
+
+            <!-- 挑眉（坏笑灵魂） -->
+            <path d="M116 54 Q136 43 157 51" stroke="#C25E7E" stroke-width="7" fill="none" stroke-linecap="round"/>
+
+            <!-- 猪鼻 -->
+            <ellipse cx="100" cy="119" rx="39" ry="27" fill="#EE7C9C"/>
+            <ellipse cx="100" cy="119" rx="39" ry="27" fill="none" stroke="#D96A8B" stroke-width="2"/>
+            <ellipse cx="88" cy="119" rx="5.5" ry="7" fill="#B95C7B"/>
+            <ellipse cx="112" cy="119" rx="5.5" ry="7" fill="#B95C7B"/>
+
+            <!-- 坏笑：右嘴角上扬 -->
+            <path d="M72 150 Q102 170 134 143" stroke="#B3526F" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <!-- 一点小尖牙 -->
+            <path d="M126 147 L136 145 L130 158 Z" fill="#FFFFFF"/>
+          </svg>
+        </div>
       </div>
+
       <div class="splash-title-row" id="splashTitleRow">
         <span class="splash-char">P</span>
         <span class="splash-char">i</span>
@@ -135,6 +324,13 @@
         <span class="splash-char">b</span>
         <span class="splash-char">y</span>
       </div>
+
+      <div class="splash-zhk">
+        <span class="zhk-char z">Z</span>
+        <span class="zhk-char h">H</span>
+        <span class="zhk-char k">K</span>
+      </div>
+
       <div class="splash-subtitle">小猪记账本</div>
       <div class="splash-dots">
         <span class="splash-dot"></span>
