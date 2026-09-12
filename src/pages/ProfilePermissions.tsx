@@ -79,10 +79,10 @@ export default function ProfilePermissions() {
       setReconnectMsg(
         r.connected
           ? '✅ 已重新连接'
-          : '仍未连接：可以试试关闭再重新开启通知使用权，或重启手机'
+          : '仍未连接：可点「系统设置」把通知使用权关闭再重新打开，或重启手机'
       );
     } catch {
-      setReconnectMsg('连接失败：可以试试关闭再重新开启通知使用权');
+      setReconnectMsg('连接失败：可点「系统设置」把通知使用权关闭再重新打开');
     }
     setConnecting(false);
   };
@@ -193,9 +193,14 @@ export default function ProfilePermissions() {
                 : '仅安卓端'}
             </span>
             {isNativeCapture && notifAccess && !notifConnected && (
-              <button className="pf-toggle" onClick={handleReconnect} disabled={connecting}>
-                {connecting ? '连接中…' : '连接监听'}
-              </button>
+              <>
+                <button className="pf-toggle" onClick={handleReconnect} disabled={connecting}>
+                  {connecting ? '连接中…' : '连接监听'}
+                </button>
+                <button className="pf-toggle" onClick={openNotifSettings} disabled={connecting}>
+                  系统设置
+                </button>
+              </>
             )}
             <button
               className="pf-toggle"

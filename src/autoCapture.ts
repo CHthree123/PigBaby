@@ -69,10 +69,16 @@ interface AutoCapturePlugin {
 export const AutoCapture = registerPlugin<AutoCapturePlugin>('AutoCapture');
 export const isNativeCapture = Capacitor.isNativePlatform();
 
-// 已授权但未连接时手动触发系统重新绑定，稍候返回最新状态
+// 已授权但未连接时手动触发系统重新绑定。系统重绑是异步的（部分国产 ROM 可能要几秒），
+// 所以轮询等待最多约 6 秒，返回最终状态。
 export async function reconnectCapture(): Promise<{ enabled: boolean; connected: boolean }> {
   const r = await AutoCapture.reconnect().catch(() => ({ requested: false }));
-  if (r.requested) await new Promise((res) => setTimeout(res, 1500));
+  if (!r.requested) return AutoCapture.status();
+  for (let i = 0; i < 8; i++) {
+    await new Promise((res) => setTimeout(res, 750));
+    const s = await AutoCapture.status().catch(() => null);
+    if (s?.connected) return s;
+  }
   return AutoCapture.status();
 }
 

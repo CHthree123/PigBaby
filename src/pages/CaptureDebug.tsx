@@ -101,6 +101,8 @@ export default function CaptureDebug() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [manual, setManual] = useState<Row | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectMsg, setReconnectMsg] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -189,15 +191,38 @@ export default function CaptureDebug() {
       </div>
 
       {listener?.enabled && !listener.connected && (
-        <button
-          className="cd-refresh"
-          onClick={async () => {
-            setListener(await reconnectCapture());
-          }}
-        >
-          🔄 重连监听服务
-        </button>
+        <>
+          <button
+            className="cd-refresh"
+            disabled={reconnecting}
+            onClick={async () => {
+              setReconnecting(true);
+              setReconnectMsg('');
+              try {
+                const s = await reconnectCapture();
+                setListener(s);
+                setReconnectMsg(
+                  s.connected
+                    ? '✅ 已重新连接'
+                    : '未连接成功：可在「系统设置」里把通知使用权关闭再重新打开，或重启手机'
+                );
+              } catch {
+                setReconnectMsg('重连失败：可在「系统设置」里把通知使用权关闭再重新打开');
+              }
+              setReconnecting(false);
+            }}
+          >
+            {reconnecting ? '连接中…（最多等约 6 秒）' : '🔄 重连监听服务'}
+          </button>
+          <button
+            className="cd-mini"
+            onClick={() => { AutoCapture.openSettings().catch(() => undefined); }}
+          >
+            去系统设置
+          </button>
+        </>
       )}
+      {reconnectMsg && <div className="cd-note">{reconnectMsg}</div>}
 
       <button className="cd-refresh" onClick={load} disabled={loading}>
         {loading ? '读取中…' : '刷新（并扫描通知栏）'}
