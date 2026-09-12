@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { PluginListenerHandle } from '@capacitor/core';
-import type { Transaction, PendingCapture } from '../storage';
+import type { Transaction, PendingCapture, CaptureLogEntry } from '../storage';
 import {
   loadData,
   saveData,
@@ -9,6 +9,7 @@ import {
   loadPendingCaptures,
   savePendingCaptures,
   removePendingCapture,
+  appendCaptureLog,
 } from '../storage';
 import { AutoCapture, syncCaptures, isNativeCapture, type SyncResult } from '../autoCapture';
 import AddRecordModal from './AddRecordModal';
@@ -24,6 +25,27 @@ function pad(n: number): string {
 function dateOfMs(ms: number): string {
   const d = new Date(ms);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// 在记账页处理待确认草稿后，把处置结果写回「最近捕获」历史（同 id 覆盖原「待确认」条目）
+function logOfDraft(
+  p: PendingCapture,
+  ok: boolean,
+  reason: string,
+  action: CaptureLogEntry['action']
+): CaptureLogEntry {
+  return {
+    id: p.id,
+    app: p.app,
+    when: p.when,
+    title: '',
+    text: p.raw,
+    detail: '',
+    ok,
+    reason,
+    action,
+    loggedAt: Date.now(),
+  };
 }
 
 function draftToTransaction(p: PendingCapture, overrides?: Partial<Transaction>): Transaction {
@@ -104,6 +126,7 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
   const confirmDraft = async (p: PendingCapture) => {
     const data = await loadData();
     await saveData({ ...data, records: [...data.records, draftToTransaction(p)] });
+    await appendCaptureLog([logOfDraft(p, true, `确认入账 ¥${p.amount.toFixed(2)}`, 'posted')]);
     await removeDraft(p.id);
     await onRefresh();
   };
@@ -112,6 +135,9 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
     if (pending.length === 0) return;
     const data = await loadData();
     await saveData({ ...data, records: [...data.records, ...pending.map((p) => draftToTransaction(p))] });
+    await appendCaptureLog(
+      pending.map((p) => logOfDraft(p, true, `确认入账 ¥${p.amount.toFixed(2)}`, 'posted'))
+    );
     await savePendingCaptures([]);
     setPending([]);
     await onRefresh();
@@ -120,9 +146,18 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
   const saveEdited = async (record: Transaction) => {
     const data = await loadData();
     await saveData({ ...data, records: [...data.records, record] });
+    const p = pending.find((x) => x.id === record.id);
+    if (p) {
+      await appendCaptureLog([logOfDraft(p, true, `修改后入账 ¥${record.amount.toFixed(2)}`, 'posted')]);
+    }
     await removeDraft(record.id);
     setEditing(null);
     await onRefresh();
+  };
+
+  const ignoreDraft = async (p: PendingCapture) => {
+    await appendCaptureLog([logOfDraft(p, false, '手动忽略，未入账', 'ignored')]);
+    await removeDraft(p.id);
   };
 
   if (pending.length === 0) {
@@ -161,7 +196,7 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
                   {p.type === 'income' ? '+' : '−'}¥{p.amount.toFixed(2)}
                 </div>
                 <button className="ac-pending-btn ok" onClick={() => confirmDraft(p)}>确认</button>
-                <button className="ac-pending-btn" onClick={() => removeDraft(p.id)}>忽略</button>
+                <button className="ac-pending-btn" onClick={() => ignoreDraft(p)}>忽略</button>
               </div>
             ))}
           </div>

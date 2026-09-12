@@ -173,6 +173,11 @@
   color: var(--text-muted);
 }
 
+.cd-badge.act-ignored {
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
 .cd-screen-text {
   margin: 0;
   padding: 8px 10px;

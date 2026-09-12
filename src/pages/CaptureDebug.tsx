@@ -87,6 +87,7 @@ const ACTION_LABEL: Record<CaptureLogEntry['action'], string> = {
   duplicate: '重复',
   merged: '已合并',
   filtered: '已过滤',
+  ignored: '已忽略',
   sensitive: '转账',
 };
 
@@ -103,15 +104,18 @@ export default function CaptureDebug() {
   const [manual, setManual] = useState<Row | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const [reconnectMsg, setReconnectMsg] = useState('');
+  const [teaching, setTeaching] = useState<{ id: string; decision: 'record' | 'filter' } | null>(null);
+  const [notice, setNotice] = useState('');
 
-  const load = async () => {
+  const load = async (): Promise<Row[]> => {
     setLoading(true);
     setError('');
     if (!isNativeCapture) {
       setError('仅安卓端可用（当前为网页预览）');
       setLoading(false);
-      return;
+      return [];
     }
+    let list: Row[] = [];
     try {
       setListener(await AutoCapture.status().catch(() => null));
       // 先扫一遍通知栏，把还在栏里的通知补进队列
@@ -126,7 +130,7 @@ export default function CaptureDebug() {
       setRules(learned);
       const draftIds = new Set(pending.map((p) => p.id));
       const recordIds = new Set(data.records.map((r) => r.id));
-      const list: Row[] = (captures || [])
+      list = (captures || [])
         .map((c) => ({
           capture: c,
           result: parseCapture(c, tagNames, engine),
@@ -143,6 +147,7 @@ export default function CaptureDebug() {
       setError(`读取失败：${(e as { message?: string })?.message || String(e)}`);
     }
     setLoading(false);
+    return list;
   };
 
   useEffect(() => {
@@ -150,14 +155,39 @@ export default function CaptureDebug() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 教学：记住这类消息以后该记账还是该忽略，并立即用新规则重跑一次同步
+  // 教学：记住这类消息以后该记账还是该忽略，并立即用新规则重跑一次同步；
+  // 教学完给出明确回执（"以后记账"对无金额消息不会立即产生草稿，需说明）
   const teach = async (row: Row, decision: 'record' | 'filter') => {
     const text = captureText(row.capture);
     const tokens = extractTokens(text);
-    if (tokens.length === 0) return;
-    await addCaptureRule({ tokens, decision, sample: text });
-    await syncCaptures().catch(() => undefined);
-    await load();
+    if (tokens.length === 0) {
+      setNotice('这条消息没有可提取的特征词，无法教学；可直接点「手动补记」');
+      return;
+    }
+    setTeaching({ id: row.capture.id, decision });
+    setNotice('');
+    try {
+      await addCaptureRule({ tokens, decision, sample: text });
+      await syncCaptures().catch(() => undefined);
+      const list = await load();
+      const still = list.some((r) => r.capture.id === row.capture.id);
+      if (decision === 'filter') {
+        setNotice(
+          still
+            ? '已记住：以后同类消息自动过滤（本条暂未移除，可点「忽略」或再同步一次）'
+            : '✅ 已记住：这类消息以后自动过滤'
+        );
+      } else {
+        setNotice(
+          still
+            ? '已记住：以后同类消息优先尝试记账；本条未识别出金额，可点「手动补记」'
+            : '✅ 已记住：这类消息以后自动记账'
+        );
+      }
+    } catch {
+      setNotice('教学失败，请重试');
+    }
+    setTeaching(null);
   };
 
   const ignoreSensitive = async (row: Row) => {
@@ -241,6 +271,7 @@ export default function CaptureDebug() {
       )}
 
       {error && <div className="cd-error">{error}</div>}
+      {notice && <div className="cd-status on">{notice}</div>}
 
       {!loading && !error && rows.length === 0 && (
         <div className="cd-note">当前没有未处理的捕获。下面「历史记录」里可以看到每次捕获的处置结果。</div>
@@ -292,11 +323,19 @@ export default function CaptureDebug() {
               <div className="cd-actions">
                 {!isSensitive && (
                   <>
-                    <button className="cd-mini" disabled={!tokens.length} onClick={() => teach(row, 'record')}>
-                      ✅ 以后记账
+                    <button
+                      className="cd-mini"
+                      disabled={teaching?.id === capture.id}
+                      onClick={() => teach(row, 'record')}
+                    >
+                      {teaching?.id === capture.id && teaching.decision === 'record' ? '处理中…' : '✅ 以后记账'}
                     </button>
-                    <button className="cd-mini" disabled={!tokens.length} onClick={() => teach(row, 'filter')}>
-                      🚫 以后忽略
+                    <button
+                      className="cd-mini"
+                      disabled={teaching?.id === capture.id}
+                      onClick={() => teach(row, 'filter')}
+                    >
+                      {teaching?.id === capture.id && teaching.decision === 'filter' ? '处理中…' : '🚫 以后忽略'}
                     </button>
                   </>
                 )}

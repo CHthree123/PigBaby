@@ -594,11 +594,12 @@ export async function bumpCaptureRuleHits(ids: string[]): Promise<void> {
 
 export type CaptureAction =
   | 'draft'      // 生成待确认草稿
-  | 'posted'     // 直接入账
+  | 'posted'     // 直接入账（含确认/修改后入账）
   | 'skipped'    // 未识别（保留在队列待处理）
   | 'duplicate'  // 与已入账记录重复
   | 'merged'     // 与已有草稿合并为同一笔
   | 'filtered'   // 噪音/学习规则过滤
+  | 'ignored'    // 草稿被手动忽略
   | 'sensitive'; // 转账类敏感消息
 
 export interface CaptureLogEntry {
