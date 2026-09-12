@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
-const APP_VERSION = '1.10.1';
+const APP_VERSION = '1.10.2';
 
 export default function Profile() {
   const navigate = useNavigate();

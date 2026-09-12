@@ -94,6 +94,11 @@ export default function AddTaskModal({ defaultDate, editTask, onSave, onDelete, 
             value={reminder}
             onChange={(e) => setReminder(e.target.value.slice(0, 5))}
           />
+          {reminder && /^\d{4}-\d{2}-\d{2}$/.test(date) && (
+            <div className="arm-label" style={{ marginTop: 6 }}>
+              {`将在 ${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日 ${reminder} 提醒`}
+            </div>
+          )}
           {reminder && `${date}T${reminder}` <= nowLocalStr() && (
             <div className="arm-label" style={{ color: '#E8930C', marginTop: 6 }}>
               该时间已过去，不会收到提醒
