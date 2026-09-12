@@ -12,22 +12,34 @@ import android.service.notification.StatusBarNotification;
 import com.getcapacitor.JSObject;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * 自动记账采集层：只读取微信与支付宝两个包的通知，保存所有可见文本，
- * 其余 App 的通知直接忽略（不落盘、不处理）。解析与打标在 JS 层进行，
- * 便于不重新编译原生代码即可校准规则。
+ * 自动记账采集层：只读取下列 8 个包的通知（微信 / 支付宝 / 抖音 / 淘宝 / 京东 /
+ * 拼多多 / 美团 / 云闪付），保存所有可见文本，其余 App 的通知直接忽略（不落盘、不处理）。
+ * 解析、过滤、学习与打标全部在 JS 层进行，便于不重新编译原生代码即可校准规则。
  */
 public class PigNotificationListener extends NotificationListenerService {
 
     private static PigNotificationListener instance;
 
-    private static final Set<String> WATCHED = new HashSet<>(Arrays.asList(
-            "com.tencent.mm",
-            "com.eg.android.AlipayGphone"
-    ));
+    private static final Map<String, String> APP_LABELS = new HashMap<>();
+
+    static {
+        APP_LABELS.put("com.tencent.mm", "微信");
+        APP_LABELS.put("com.eg.android.AlipayGphone", "支付宝");
+        APP_LABELS.put("com.ss.android.ugc.aweme", "抖音");
+        APP_LABELS.put("com.taobao.taobao", "淘宝");
+        APP_LABELS.put("com.jingdong.app.mall", "京东");
+        APP_LABELS.put("com.xunmeng.pinduoduo", "拼多多");
+        APP_LABELS.put("com.sankuai.meituan", "美团");
+        APP_LABELS.put("com.unionpay", "云闪付");
+    }
+
+    private static final Set<String> WATCHED = APP_LABELS.keySet();
 
     // 已单独读取的字段，兜底收集时跳过以免重复
     private static final Set<String> HANDLED_KEYS = new HashSet<>(Arrays.asList(
@@ -46,11 +58,11 @@ public class PigNotificationListener extends NotificationListenerService {
     private static final int MAX_DUMP_LEN = 1600;
     private static final int MAX_DEPTH = 3;
 
-    // 账单类关键词预筛：微信里大量普通聊天通知不含任何上述字样，直接丢弃，
-    // 避免队列与调试页被无关消息淹没（宁可多留，不可漏抓）
+    // 账单类关键词预筛：各 App 里大量普通消息（聊天/推送）不含任何上述字样，直接丢弃，
+    // 避免队列与调试页被无关消息淹没（宁可多留，不可漏抓；精细过滤在 JS 层做）
     private static final String[] FINANCE_HINTS = {
             "¥", "￥", "元", "扣", "到账", "收款", "退款", "转账", "收入", "支出",
-            "消费", "账单", "支付", "余额", "红包", "付款"
+            "消费", "账单", "支付", "余额", "红包", "付款", "实付", "已付", "入账", "退回", "充值"
     };
 
     private static boolean looksLikeFinance(String all) {
@@ -123,7 +135,7 @@ public class PigNotificationListener extends NotificationListenerService {
 
         JSObject o = new JSObject();
         o.put("pkg", pkg);
-        o.put("app", "com.tencent.mm".equals(pkg) ? "微信" : "支付宝");
+        o.put("app", APP_LABELS.containsKey(pkg) ? APP_LABELS.get(pkg) : pkg);
         o.put("title", title);
         o.put("text", text);
         o.put("bigText", big);

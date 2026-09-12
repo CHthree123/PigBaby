@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { PluginListenerHandle } from '@capacitor/core';
 import type { Transaction, PendingCapture } from '../storage';
 import {
@@ -7,8 +8,9 @@ import {
   loadAutoCapture,
   loadPendingCaptures,
   savePendingCaptures,
+  removePendingCapture,
 } from '../storage';
-import { AutoCapture, syncCaptures, isNativeCapture } from '../autoCapture';
+import { AutoCapture, syncCaptures, isNativeCapture, type SyncResult } from '../autoCapture';
 import AddRecordModal from './AddRecordModal';
 
 interface Props {
@@ -41,7 +43,9 @@ function draftToTransaction(p: PendingCapture, overrides?: Partial<Transaction>)
 // 自动记账引擎 + 待确认列表：开启后轮询原生捕获队列（App 关闭期间的通知
 // 也会在下次打开时补上），每笔生成待确认草稿；确认/修改后才入账。
 export default function AutoCaptureSync({ onRefresh }: Props) {
+  const navigate = useNavigate();
   const [pending, setPending] = useState<PendingCapture[]>([]);
+  const [last, setLast] = useState<SyncResult | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState<PendingCapture | null>(null);
 
@@ -66,6 +70,7 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
       try {
         if (!(await loadAutoCapture())) return;
         const r = await syncCaptures();
+        setLast(r);
         if (r.drafts > 0 || r.posted > 0) {
           await reloadPending();
           if (r.posted > 0) await onRefreshRef.current();
@@ -78,19 +83,22 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
     pull();
     const timer = setInterval(pull, 10000);
     AutoCapture.addListener('capture', () => { pull(); }).then((h) => { handle = h; });
+    // WebView 挂起时定时器与事件会被系统节流，回前台时补拉一次
+    const onVis = () => {
+      if (document.visibilityState === 'visible') pull();
+    };
+    document.addEventListener('visibilitychange', onVis);
 
     return () => {
       stopped = true;
       clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVis);
       handle?.remove();
     };
   }, []);
 
   const removeDraft = async (id: string) => {
-    const list = await loadPendingCaptures();
-    const next = list.filter((p) => p.id !== id);
-    await savePendingCaptures(next);
-    setPending(next);
+    setPending(await removePendingCapture(id));
   };
 
   const confirmDraft = async (p: PendingCapture) => {
@@ -117,7 +125,18 @@ export default function AutoCaptureSync({ onRefresh }: Props) {
     await onRefresh();
   };
 
-  if (pending.length === 0) return null;
+  if (pending.length === 0) {
+    const needsManual = (last?.sensitive ?? 0) + (last?.uncertain ?? 0);
+    if (needsManual === 0) return null;
+    return (
+      <div className="ac-pending-card">
+        <div className="ac-pending-head" onClick={() => navigate('/profile/captures')}>
+          <span className="ac-pending-title">🔔 {needsManual} 条转账/待判断消息需手动处理</span>
+          <span className="ac-pending-toggle">去处理 ›</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="ac-pending-card">

@@ -14,18 +14,19 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Persists raw WeChat/Alipay notifications captured by the listener service,
- * including while the app is closed. JS pulls, parses and acknowledges them —
- * parsing rules live in the web layer so they can be tuned without a native
- * rebuild of the logic itself.
+ * Persists raw notifications from the 8 watched apps captured by the listener
+ * service, including while the app is closed. JS pulls, parses and acknowledges
+ * them — parsing/filtering rules live in the web layer so they can be tuned
+ * without a native rebuild of the logic itself.
  */
 public class NotifStore {
 
     private static final String PREFS = "pigbaby_notif";
     private static final String KEY_ITEMS = "captures";
     private static final String KEY_SEEN = "seen_sigs";
-    private static final int MAX_ITEMS = 300;
-    private static final int MAX_SEEN = 120;
+    // 8 个应用的消息量可达原来 4 倍，容量放宽避免未处理捕获被挤掉
+    private static final int MAX_ITEMS = 500;
+    private static final int MAX_SEEN = 240;
     private static final long MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000;
 
     private static long seq = 0;

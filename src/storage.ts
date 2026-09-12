@@ -473,7 +473,7 @@ export async function saveInitialBalance(b: InitialBalance): Promise<void> {
 
 export interface PendingCapture {
   id: string;
-  app: string;              // 微信 / 支付宝
+  app: string;              // 来源应用（微信/支付宝/抖音/淘宝…）
   when: number;             // 通知时间（ms），也用作确认入账后的记录 id 前缀
   amount: number;
   type: 'income' | 'expense';
@@ -528,7 +528,78 @@ export async function savePendingCaptures(list: PendingCapture[]): Promise<void>
   await Preferences.set({ key: PENDING_KEY, value: JSON.stringify(list) });
 }
 
+export async function removePendingCapture(id: string): Promise<PendingCapture[]> {
+  const list = (await loadPendingCaptures()).filter((p) => p.id !== id);
+  await savePendingCaptures(list);
+  return list;
+}
+
+// ========== 捕获学习规则（本地关键词学习：教会 App 某类消息该记账还是该过滤） ==========
+
+export interface CaptureRule {
+  id: string;
+  tokens: string[];              // 特征词，全部命中即视为同类消息
+  decision: 'record' | 'filter';
+  sample: string;                // 教学时的消息原文（展示用）
+  createdAt: number;
+  hits: number;                  // 规则命中次数
+}
+
+const CAPTURE_RULES_KEY = 'pigbaby_capture_learn';
+
+export async function loadCaptureRules(): Promise<CaptureRule[]> {
+  const { value } = await Preferences.get({ key: CAPTURE_RULES_KEY });
+  if (!value) return [];
+  return JSON.parse(value) as CaptureRule[];
+}
+
+export async function saveCaptureRules(rules: CaptureRule[]): Promise<void> {
+  await Preferences.set({ key: CAPTURE_RULES_KEY, value: JSON.stringify(rules) });
+}
+
+export async function addCaptureRule(input: {
+  tokens: string[];
+  decision: 'record' | 'filter';
+  sample: string;
+}): Promise<CaptureRule> {
+  const rules = await loadCaptureRules();
+  const key = (t: string[]) => [...t].sort().join('+');
+  const dup = rules.find((r) => r.decision === input.decision && key(r.tokens) === key(input.tokens));
+  if (dup) return dup;
+  const rule: CaptureRule = {
+    id: `r${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    tokens: input.tokens,
+    decision: input.decision,
+    sample: input.sample.slice(0, 120),
+    createdAt: Date.now(),
+    hits: 0,
+  };
+  await saveCaptureRules([...rules, rule]);
+  return rule;
+}
+
+export async function deleteCaptureRule(id: string): Promise<void> {
+  const rules = await loadCaptureRules();
+  await saveCaptureRules(rules.filter((r) => r.id !== id));
+}
+
+export async function bumpCaptureRuleHits(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const rules = await loadCaptureRules();
+  const set = new Set(ids);
+  await saveCaptureRules(rules.map((r) => (set.has(r.id) ? { ...r, hits: r.hits + 1 } : r)));
+}
+
 // ========== 自动记账捕获历史（调试/追溯用，独立于工作队列，不会被清除） ==========
+
+export type CaptureAction =
+  | 'draft'      // 生成待确认草稿
+  | 'posted'     // 直接入账
+  | 'skipped'    // 未识别（保留在队列待处理）
+  | 'duplicate'  // 与已入账记录重复
+  | 'merged'     // 与已有草稿合并为同一笔
+  | 'filtered'   // 噪音/学习规则过滤
+  | 'sensitive'; // 转账类敏感消息
 
 export interface CaptureLogEntry {
   id: string;
@@ -539,7 +610,7 @@ export interface CaptureLogEntry {
   detail: string;      // 其他文本/原始字段摘要（截断）
   ok: boolean;
   reason: string;      // 未识别原因或说明
-  action: 'draft' | 'posted' | 'skipped' | 'duplicate';
+  action: CaptureAction;
   loggedAt: number;
 }
 
@@ -560,6 +631,15 @@ export async function appendCaptureLog(entries: CaptureLogEntry[]): Promise<void
   for (const e of entries) byId.set(e.id, e);
   const merged = [...byId.values()].sort((a, b) => b.when - a.when).slice(0, CAPTURE_LOG_MAX);
   await Preferences.set({ key: CAPTURE_LOG_KEY, value: JSON.stringify(merged) });
+}
+
+export async function deleteCaptureLogEntry(id: string): Promise<void> {
+  const log = await loadCaptureLog();
+  await Preferences.set({ key: CAPTURE_LOG_KEY, value: JSON.stringify(log.filter((e) => e.id !== id)) });
+}
+
+export async function clearCaptureLog(): Promise<void> {
+  await Preferences.set({ key: CAPTURE_LOG_KEY, value: '[]' });
 }
 
 // ========== 智能推荐（记账记忆）开关与忽略列表 ==========

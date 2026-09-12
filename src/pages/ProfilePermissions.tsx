@@ -72,10 +72,17 @@ export default function ProfilePermissions() {
     setSyncStatus('');
     try {
       const r = await syncCaptures();
+      const parts: string[] = [];
+      if (r.drafts) parts.push(`待确认 ${r.drafts} 笔`);
+      if (r.posted) parts.push(`直接入账 ${r.posted} 笔`);
+      if (r.merged) parts.push(`合并 ${r.merged} 条`);
+      if (r.filtered) parts.push(`过滤 ${r.filtered} 条`);
+      if (r.duplicate) parts.push(`重复 ${r.duplicate} 条`);
+      if (r.sensitive + r.uncertain) parts.push(`需手动处理 ${r.sensitive + r.uncertain} 条`);
       setSyncStatus(
         r.total === 0
           ? '暂时没有新的捕获'
-          : `本次处理 ${r.total} 条：待确认 ${r.drafts} 笔、直接入账 ${r.posted} 笔、忽略 ${r.skipped} 条`
+          : `本次处理 ${r.total} 条：${parts.join('、') || '无新增'}`
       );
     } catch (e) {
       setSyncStatus(`同步失败：${(e as { message?: string })?.message || String(e)}`);
@@ -156,7 +163,7 @@ export default function ProfilePermissions() {
         <div className="profile-card">
           <FeatureRow
             title="🔔 自动记账（通知监听）"
-            desc={'授权「通知使用权」后，付款/收款时按微信、支付宝的通知自动生成待确认草稿（只解析这两个应用的通知，其他应用不读取、不保存）。需在个人中心打开总开关后生效。小米/红米等国产系统建议把 PigBaby 的省电策略设为「无限制」并锁定后台，避免监听服务被系统清理导致漏抓。'}
+            desc={'授权「通知使用权」后，付款/收款时按微信、支付宝、抖音、淘宝、京东、拼多多、美团、云闪付的通知自动生成待确认草稿（只读取这 8 个应用的通知，其他应用不读取、不保存）。转账类消息不自动记账，会在「最近捕获」里提示手动补记；广告/物流类消息自动过滤。需在个人中心打开总开关后生效。小米/红米等国产系统建议把 PigBaby 的省电策略设为「无限制」并锁定后台，避免监听服务被系统清理导致漏抓。'}
           >
             <span className={`pf-status ${notifAccess && notifConnected ? 'on' : ''}`}>
               {isNativeCapture

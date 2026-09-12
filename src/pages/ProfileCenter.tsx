@@ -257,7 +257,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
         <div className="profile-card">
           <FeatureRow
             title="🔔 通知监听自动记账"
-            desc="开启后，微信/支付宝的付款与收款通知会生成记账草稿（需先在「权限设置」里授予通知使用权）。"
+            desc="开启后，微信/支付宝/抖音/淘宝/京东/拼多多/美团/云闪付的付款收款通知会生成记账草稿；转账类消息不自动记账，需手动补记（需先在「权限设置」里授予通知使用权）。"
           >
             <ToggleButton
               on={autoCapture}
@@ -289,7 +289,7 @@ export default function ProfileCenter({ theme, onThemeChange }: Props) {
           </FeatureRow>
           <div className="profile-divider" />
           <button className="profile-link-row" onClick={() => navigate('/profile/captures')}>
-            <span>🔍 最近捕获（解析校准）</span>
+            <span>🔍 最近捕获（校准 · 教学 · 历史）</span>
             <span className="profile-link-arrow">›</span>
           </button>
         </div>
